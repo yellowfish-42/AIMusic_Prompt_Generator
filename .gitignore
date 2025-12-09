@@ -1,0 +1,48 @@
+# .gitignore - Git版本控制忽略文件
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+
+# 模型文件(太大,不要提交到Git)
+*.pkl
+*.h5
+*.joblib
+
+# 数据文件
+*.csv
+*.xlsx
+*.json
+!package.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flask
+instance/
+.webassets-cache
+
+# 日志
+*.log
+logs/
+
+# 环境变量
+.env
+.env.local

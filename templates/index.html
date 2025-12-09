@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎵 AI音乐生成系统</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header>
+            <h1>🎵 AI 音乐生成系统</h1>
+            <p class="subtitle">基于遗传算法的智能音乐特征优化平台</p>
+        </header>
+
+        <!-- 主内容 -->
+        <main>
+            <!-- 左侧：控制面板 -->
+            <section class="control-panel">
+                <h2>🎛️ 生成控制</h2>
+                
+                <!-- 风格选择 -->
+                <div class="form-group">
+                    <label for="styleSelect">选择音乐风格</label>
+                    <div class="style-select-wrapper">
+                        <select id="styleSelect" class="form-control">
+                            <option value="">加载中...</option>
+                        </select>
+                        <div id="styleTooltip" class="style-tooltip hidden"></div>
+                    </div>
+                </div>
+
+                <!-- 特征锁定设置 -->
+                <div class="form-group">
+                    <label>
+                        🔒 锁定音乐特征 
+                        <span class="help-icon" title="锁定后该特征在优化过程中保持不变">ⓘ</span>
+                    </label>
+                    <button id="toggleFeatureLock" class="btn-secondary btn-small">
+                        展开特征设置
+                    </button>
+                    <div id="featureLockPanel" class="feature-lock-panel hidden">
+                        <!-- 动态生成的特征控制项 -->
+                    </div>
+                </div>
+
+                <!-- 运行时间 -->
+                <div class="form-group">
+                    <label for="runtimeSlider">
+                        优化时间: <span id="runtimeValue">5</span> 秒
+                    </label>
+                    <input type="range" id="runtimeSlider" min="2" max="10" value="5" step="0.5" class="slider">
+                    <small>建议: 快速预览 2-4秒, 精细优化 6-10秒</small>
+                </div>
+
+                <!-- 生成按钮 -->
+                <button id="generateBtn" class="btn-primary">
+                    🚀 开始生成
+                </button>
+
+                <!-- 进度显示 -->
+                <div id="progressSection" class="progress-section hidden">
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                    <p id="progressText">正在初始化...</p>
+                </div>
+            </section>
+
+            <!-- 右侧：结果展示 -->
+            <section class="result-panel">
+                <h2>📊 生成结果</h2>
+                
+                <!-- 空状态 -->
+                <div id="emptyState" class="empty-state">
+                    <div class="empty-icon">🎼</div>
+                    <p>选择风格后点击"开始生成"</p>
+                    <small>AI将为您创造最佳的音乐特征组合</small>
+                </div>
+
+                <!-- 结果展示 -->
+                <div id="resultContent" class="result-content hidden">
+                    <!-- 概览卡片 -->
+                    <div class="overview-cards">
+                        <div class="overview-card">
+                            <div class="card-icon">📈</div>
+                            <div class="card-content">
+                                <span class="card-label">预测流行度</span>
+                                <span id="popularityScore" class="card-value">--</span>
+                            </div>
+                        </div>
+                        <div class="overview-card">
+                            <div class="card-icon">🎨</div>
+                            <div class="card-content">
+                                <span class="card-label">音乐风格</span>
+                                <span id="clusterName" class="card-value">--</span>
+                            </div>
+                        </div>
+                        <div class="overview-card">
+                            <div class="card-icon">⚡</div>
+                            <div class="card-content">
+                                <span class="card-label">迭代代数</span>
+                                <span id="generations" class="card-value">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 特征详情 -->
+                    <div class="features-section">
+                        <h3>🎚️ 音乐特征</h3>
+                        <div id="featuresGrid" class="features-grid">
+                            <!-- 动态生成 -->
+                        </div>
+                    </div>
+
+                    <!-- AI提示词 -->
+                    <div class="prompt-section">
+                        <h3>🤖 AI音乐提示词生成</h3>
+                        
+                        <!-- DeepSeek API配置 -->
+                        <div class="api-config">
+                            <div class="api-input-row">
+                                <input 
+                                    type="password" 
+                                    id="deepseekApiKey" 
+                                    placeholder="输入DeepSeek API密钥"
+                                    class="api-key-input">
+                                <button id="generateAiPromptBtn" class="btn-ai">
+                                    ✨ 生成AI提示词
+                                </button>
+                            </div>
+                            <small class="api-hint">
+                                💡 获取API密钥: <a href="https://platform.deepseek.com/api_keys" target="_blank">platform.deepseek.com</a>
+                            </small>
+                        </div>
+                        
+                        <!-- AI生成的提示词 -->
+                        <div id="aiPromptResult" class="ai-result-box">
+                            <div id="aiPromptPlaceholder" class="ai-placeholder">
+                                输入API密钥后点击"生成AI提示词"按钮
+                            </div>
+                            <div id="aiPromptContent" class="ai-content hidden"></div>
+                            <div id="aiPromptLoading" class="ai-loading hidden">
+                                <div class="loading-spinner"></div>
+                                <span>AI正在生成提示词...</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 原始特征数据(折叠) -->
+                        <details class="raw-features-details">
+                            <summary>📋 查看原始特征数据 (JSON)</summary>
+                            <div class="prompt-box">
+                                <pre id="aiPrompt">--</pre>
+                                <button id="copyPromptBtn" class="btn-copy">📋 复制数据</button>
+                            </div>
+                        </details>
+                        
+                        <small class="prompt-hint">
+                            💡 原始数据包含所有音乐特征的具体数值，可用于其他AI音乐生成API
+                        </small>
+                    </div>
+
+                    <!-- 导出按钮 -->
+                    <div class="action-buttons">
+                        <button id="exportJsonBtn" class="btn-secondary">
+                            💾 导出JSON
+                        </button>
+                        <button id="regenerateBtn" class="btn-secondary">
+                            🔄 重新生成
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 底部信息 -->
+        <footer>
+            <p>
+                🎓 基于Spotify数据集 | 
+                🧬 遗传算法优化 | 
+                🤖 AI智能提示词生成
+            </p>
+        </footer>
+    </div>
+
+    <!-- Toast通知 -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
