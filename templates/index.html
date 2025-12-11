@@ -3,19 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎵 AI音乐生成系统</title>
+    <title>🎵 AI音乐提示词生成系统</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-    <div class="container">
+    <!-- 欢迎页面 -->
+    <div id="landingPage" class="landing-page">
+        <div class="landing-container">
+            <!-- 背景动画 -->
+            <div class="landing-bg-animation">
+                <div class="bg-circle circle-1"></div>
+                <div class="bg-circle circle-2"></div>
+                <div class="bg-circle circle-3"></div>
+            </div>
+            
+            <!-- Hero Section -->
+            <div class="landing-hero">
+                <div class="landing-logo">
+                    <span class="logo-icon">🎵</span>
+                </div>
+                <h1 class="landing-title">
+                    AI Music Prompt Generator
+                </h1>
+                <p class="landing-subtitle">
+                    基于遗传算法与智能优化的音乐特征生成平台
+                </p>
+                
+                <!-- CTA 按钮 -->
+                <button id="startBtn" class="landing-cta-btn">
+                    <span class="btn-text">🚀 开始体验</span>
+                    <span class="btn-glow"></span>
+                </button>
+                
+                <!-- 特性卡片 -->
+                <div class="landing-features">
+                    <div class="feature-card">
+                        <div class="feature-icon">✨</div>
+                        <h3>智能生成</h3>
+                        <p>AI驱动的音乐提示词生成</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📈</div>
+                        <h3>流行度分析</h3>
+                        <p>基于大数据的流行趋势预测</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <h3>可视化分析</h3>
+                        <p>直观的音乐特征雷达图</p>
+                    </div>
+                </div>
+                
+                <!-- 技术原理部分 -->
+                <div class="technical-insights">
+                    <h2 class="insights-title">🔬 技术原理</h2>
+                    
+                    <!-- 方法论卡片 -->
+                    <div class="methodology-cards">
+                        <div class="method-card">
+                            <div class="method-icon">🧠</div>
+                            <h3>核心算法</h3>
+                            <div class="method-content">
+                                <div class="method-item">
+                                    <span class="method-label">预测模型：</span>
+                                    <span class="method-value">随机森林回归</span>
+                                </div>
+                                <div class="method-item">
+                                    <span class="method-label">聚类算法：</span>
+                                    <span class="method-value">K-Prototype 聚类</span>
+                                </div>
+                                <p class="method-desc">使用集成学习算法预测流行度，通过混合聚类定义音乐风格</p>
+                            </div>
+                        </div>
+                        
+                        <div class="method-card">
+                            <div class="method-icon">📊</div>
+                            <h3>数据来源</h3>
+                            <div class="method-content">
+                                <div class="method-item">
+                                    <span class="method-label">音乐生成：</span>
+                                    <span class="method-value">Spotify 音频特征数据集</span>
+                                </div>
+                                <div class="method-item">
+                                    <span class="method-label">艺术家分析：</span>
+                                    <span class="method-value">艺术家/专辑元数据集</span>
+                                </div>
+                                <p class="method-desc">两个功能基于不同数据集，提供多维度分析视角</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 模型性能展示 -->
+                    <div class="model-performance">
+                        <h3 class="performance-title">📈 模型性能透明度</h3>
+                        <p class="performance-subtitle">诚实展示模型预测能力（R² 决定系数）</p>
+                        
+                        <div class="performance-metrics">
+                            <div class="metric-item">
+                                <div class="metric-header">
+                                    <span class="metric-label">音乐属性预测</span>
+                                    <span class="metric-value">R² = 0.2049</span>
+                                </div>
+                                <div class="metric-bar">
+                                    <div class="metric-fill" style="width: 20.49%;"></div>
+                                </div>
+                                <p class="metric-desc">基于音频特征（可舞性、能量等）预测流行度</p>
+                            </div>
+                            
+                            <div class="metric-item">
+                                <div class="metric-header">
+                                    <span class="metric-label">艺术家/专辑预测</span>
+                                    <span class="metric-value">R² = 0.4140</span>
+                                </div>
+                                <div class="metric-bar">
+                                    <div class="metric-fill metric-fill-artist" style="width: 41.4%;"></div>
+                                </div>
+                                <p class="metric-desc">基于艺术家元数据（粉丝数、流派等）预测流行度</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 免责声明 -->
+                    <div class="disclaimer-box">
+                        <div class="disclaimer-icon">⚠️</div>
+                        <div class="disclaimer-content">
+                            <h4>注意事项</h4>
+                            <p>模型预测仅基于数据特征。现实中的音乐流行度受<strong>市场营销、投流推广、媒体曝光</strong>等外部因素影响巨大，因此预测结果<strong>仅供参考</strong>，不代表绝对准确率。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainApp" class="container main-app">
         <!-- 头部 -->
         <header>
-            <h1>🎵 AI 音乐生成系统</h1>
+            <h1>🎵 AI 音乐提示词生成系统</h1>
             <p class="subtitle">基于遗传算法的智能音乐特征优化平台</p>
+            
+            <!-- 模式切换标签 -->
+            <div class="mode-tabs">
+                <button id="tabMusicMode" class="mode-tab active" data-mode="music">
+                    🎵 AI音乐提示词生成
+                </button>
+                <button id="tabArtistMode" class="mode-tab" data-mode="artist">
+                    📊 艺术家流行度分析
+                </button>
+            </div>
         </header>
 
         <!-- 主内容 -->
         <main>
+            <!-- 音乐生成模式 (默认显示) -->
+            <div id="musicModePanel" class="mode-panel active">
+            <div class="workspace">
             <!-- 左侧：控制面板 -->
             <section class="control-panel">
                 <h2>🎛️ 生成控制</h2>
@@ -35,7 +181,7 @@
                 <div class="form-group">
                     <label>
                         🔒 锁定音乐特征 
-                        <span class="help-icon" title="锁定后该特征在优化过程中保持不变">ⓘ</span>
+                        <span class="help-icon" data-tooltip="锁定后，AI 将在生成参数组合的过程中保持选定的音乐特征参数不变。">ⓘ</span>
                     </label>
                     <button id="toggleFeatureLock" class="btn-secondary btn-small">
                         展开特征设置
@@ -47,11 +193,14 @@
 
                 <!-- 运行时间 -->
                 <div class="form-group">
-                    <label for="runtimeSlider">
-                        优化时间: <span id="runtimeValue">5</span> 秒
-                    </label>
-                    <input type="range" id="runtimeSlider" min="2" max="10" value="5" step="0.5" class="slider">
-                    <small>建议: 快速预览 2-4秒, 精细优化 6-10秒</small>
+                    <div class="slider-container">
+                        <div class="slider-header">
+                            <label for="runtimeSlider">优化时间</label>
+                            <span id="runtimeValue" class="slider-value">5 秒</span>
+                        </div>
+                        <input type="range" id="runtimeSlider" min="2" max="10" value="5" step="0.5" class="slider">
+                        <small>建议: 快速预览 2-4秒, 精细优化 6-10秒</small>
+                    </div>
                 </div>
 
                 <!-- 生成按钮 -->
@@ -61,10 +210,19 @@
 
                 <!-- 进度显示 -->
                 <div id="progressSection" class="progress-section hidden">
-                    <div class="progress-bar">
-                        <div id="progressFill" class="progress-fill"></div>
+                    <!-- 音乐波形加载动画 -->
+                    <div class="generating-state">
+                        <div class="music-wave">
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                            <div class="wave-bar"></div>
+                        </div>
+                        <p id="progressText" class="generating-text">正在初始化...</p>
                     </div>
-                    <p id="progressText">正在初始化...</p>
                 </div>
             </section>
 
@@ -78,43 +236,92 @@
                     <p>选择风格后点击"开始生成"</p>
                     <small>AI将为您创造最佳的音乐特征组合</small>
                 </div>
+                
+                <!-- 骨架屏加载状态 -->
+                <div id="skeletonLoader" class="skeleton-loader hidden">
+                    <div class="overview-cards">
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                        <div class="skeleton-card"></div>
+                    </div>
+                    <div class="skeleton-text"></div>
+                    <div class="skeleton-text"></div>
+                    <div class="skeleton-text"></div>
+                </div>
 
                 <!-- 结果展示 -->
                 <div id="resultContent" class="result-content hidden">
-                    <!-- 概览卡片 -->
-                    <div class="overview-cards">
-                        <div class="overview-card">
-                            <div class="card-icon">📈</div>
-                            <div class="card-content">
-                                <span class="card-label">预测流行度</span>
-                                <span id="popularityScore" class="card-value">--</span>
+                    <!-- 顶部区域：雷达图 + 关键指标 (2列布局) -->
+                    <div class="top-section-grid">
+                        <!-- 左侧：雷达图 (40%) -->
+                        <div class="chart-section">
+                            <h3>🎚️ 音乐特征可视化</h3>
+                            <div class="radar-chart-container">
+                                <canvas id="featuresRadarChart"></canvas>
                             </div>
                         </div>
-                        <div class="overview-card">
-                            <div class="card-icon">🎨</div>
-                            <div class="card-content">
-                                <span class="card-label">音乐风格</span>
-                                <span id="clusterName" class="card-value">--</span>
+                        
+                        <!-- 右侧：关键指标 (60%) - 网格布局 -->
+                        <div class="metrics-section">
+                            <div class="metrics-grid">
+                                <!-- 顶部：流行度卡片 - 全宽 -->
+                                <div class="overview-card popularity-card-large">
+                                    <div class="circular-progress-large" id="popularityCircle">
+                                        <svg width="160" height="160" viewBox="0 0 160 160">
+                                            <circle class="progress-bg" cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="10"/>
+                                            <circle class="progress-bar" id="popularityProgressBar" cx="80" cy="80" r="70" fill="none" stroke="#1DB954" stroke-width="10" 
+                                                stroke-linecap="round" 
+                                                stroke-dasharray="439.8" 
+                                                stroke-dashoffset="439.8"
+                                                transform="rotate(-90 80 80)"/>
+                                            <text x="80" y="75" text-anchor="middle" class="progress-text-large" id="popularityScore">0</text>
+                                            <text x="80" y="100" text-anchor="middle" class="progress-label-large">预测流行度</text>
+                                            <text x="80" y="115" text-anchor="middle" class="progress-sublabel">Predicted Popularity</text>
+                                        </svg>
+                                    </div>
+                                </div>
+                                
+                                <!-- 底部左：音乐风格 -->
+                                <div class="overview-card compact-card">
+                                    <div class="card-icon-large">🎨</div>
+                                    <div class="card-content-compact">
+                                        <span class="card-label-compact">音乐风格</span>
+                                        <span id="clusterName" class="card-value-compact">--</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- 底部右：BPM -->
+                                <div class="overview-card compact-card">
+                                    <div class="card-icon-large">🎵</div>
+                                    <div class="card-content-compact">
+                                        <span class="card-label-compact">速度 (BPM)</span>
+                                        <span id="bpmValue" class="card-value-compact">--</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="overview-card">
-                            <div class="card-icon">⚡</div>
-                            <div class="card-content">
-                                <span class="card-label">迭代代数</span>
-                                <span id="generations" class="card-value">--</span>
+                    </div>
+                    
+                    <!-- 中部：完整特征列表 (紧凑型6列网格 - 可折叠) -->
+                    <div class="features-section compact collapsible">
+                        <div class="collapsible-header" id="featuresToggle">
+                            <div class="header-left">
+                                <span class="header-icon">📊</span>
+                                <h3>完整特征列表</h3>
+                            </div>
+                            <div class="header-right">
+                                <span class="toggle-text">展开</span>
+                                <span class="chevron-icon">▼</span>
+                            </div>
+                        </div>
+                        <div id="featuresGridContainer" class="collapsible-content collapsed">
+                            <div id="featuresGrid" class="features-grid compact-grid">
+                                <!-- 动态生成 -->
                             </div>
                         </div>
                     </div>
 
-                    <!-- 特征详情 -->
-                    <div class="features-section">
-                        <h3>🎚️ 音乐特征</h3>
-                        <div id="featuresGrid" class="features-grid">
-                            <!-- 动态生成 -->
-                        </div>
-                    </div>
-
-                    <!-- AI提示词 -->
+                    <!-- 底部：AI提示词 -->
                     <div class="prompt-section">
                         <h3>🤖 AI音乐提示词生成</h3>
                         
@@ -172,6 +379,127 @@
                     </div>
                 </div>
             </section>
+            </div>
+            </div>
+        
+            <!-- 艺术家分析模式 (默认隐藏) -->
+            <div id="artistModePanel" class="mode-panel hidden">
+                <div class="workspace">
+                    <!-- 左侧：输入面板 -->
+                    <section class="control-panel">
+                        <h2>📊 艺术家&专辑信息</h2>
+                    
+                        <div class="form-group">
+                            <label for="releaseYear">发行年份</label>
+                        <input type="number" id="releaseYear" class="form-control" min="1950" max="2030" value="2025">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="releaseMonth">发行月份</label>
+                        <select id="releaseMonth" class="form-control">
+                            <option value="1">1月 (January)</option>
+                            <option value="2">2月 (February)</option>
+                            <option value="3">3月 (March)</option>
+                            <option value="4">4月 (April)</option>
+                            <option value="5">5月 (May)</option>
+                            <option value="6" selected>6月 (June)</option>
+                            <option value="7">7月 (July)</option>
+                            <option value="8">8月 (August)</option>
+                            <option value="9">9月 (September)</option>
+                            <option value="10">10月 (October)</option>
+                            <option value="11">11月 (November)</option>
+                            <option value="12">12月 (December)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="slider-container">
+                            <div class="slider-header">
+                                <label for="artistPopularity">艺术家流行度</label>
+                                <span id="artistPopularityValue" class="slider-value">50</span>
+                            </div>
+                            <input type="range" id="artistPopularity" class="slider" min="0" max="100" value="50" step="1">
+                            <small>艺术家当前的Spotify流行度评分 (0-100)</small>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="artistFollowers">艺术家粉丝数</label>
+                        <input type="number" id="artistFollowers" class="form-control" min="0" value="100000" step="1000">
+                        <small>Spotify平台上的关注者数量</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="albumTotalTracks">专辑总曲目数</label>
+                        <input type="number" id="albumTotalTracks" class="form-control" min="1" max="100" value="12">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="trackNumber">曲目编号</label>
+                        <input type="number" id="trackNumber" class="form-control" min="1" max="100" value="5">
+                        <small>该曲目在专辑中的位置</small>
+                    </div>
+                    
+                    <button id="predictArtistBtn" class="btn-primary">
+                        🔮 预测流行度
+                    </button>
+                </section>
+                
+                <!-- 右侧：分析结果 -->
+                <section class="result-panel">
+                    <h2>📈 预测结果</h2>
+                    
+                    <div id="artistEmptyState" class="empty-state">
+                        <div class="empty-icon">📊</div>
+                        <p>输入艺术家信息后点击"预测流行度"</p>
+                        <small>基于RandomForest模型分析潜在流行度</small>
+                    </div>
+                    
+                    <div id="artistResultContent" class="result-content hidden">
+                        <!-- 预测结果卡片 -->
+                        <div class="overview-cards">
+                            <div class="overview-card">
+                                <div class="card-icon">🎯</div>
+                                <div class="card-content">
+                                    <span class="card-label">预测流行度</span>
+                                    <span id="artistPredictedPop" class="card-value">--</span>
+                                </div>
+                            </div>
+                            <div class="overview-card">
+                                <div class="card-icon">👤</div>
+                                <div class="card-content">
+                                    <span class="card-label">艺术家影响力</span>
+                                    <span id="artistInfluence" class="card-value">--</span>
+                                </div>
+                            </div>
+                            <div class="overview-card">
+                                <div class="card-icon">📅</div>
+                                <div class="card-content">
+                                    <span class="card-label">发行时间</span>
+                                    <span id="releaseInfo" class="card-value">--</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 特征分析 -->
+                        <div class="features-section">
+                            <h3>📊 输入特征</h3>
+                            <div id="artistFeaturesGrid" class="features-grid">
+                                <!-- 动态生成 -->
+                            </div>
+                        </div>
+                        
+                        <!-- 洞察建议 -->
+                        <div class="insights-section">
+                            <h3>💡 数据洞察</h3>
+                            <div id="artistInsights" class="insights-content">
+                                <!-- 动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            </div>
         </main>
 
         <!-- 底部信息 -->

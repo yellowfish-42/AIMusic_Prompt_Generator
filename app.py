@@ -39,6 +39,10 @@ clustering_scaler = None  # 聚类模型的标准化器
 prediction_artifacts = None
 feature_names = None
 
+# 双RandomForest模型（新增）
+rf_model_music = None      # 音乐特征模型（13个特征）
+rf_model_artist = None     # 艺术家特征模型（7个特征）
+
 # 音乐风格映射
 CLUSTER_NAMES = {
     0: "经典原声人声 (Acoustic & Vocal Standards)",
@@ -81,9 +85,10 @@ FEATURE_DESCRIPTIONS = {
 
 
 def load_models():
-    """加载聚类模型、预测模型和未来预测数据"""
+    """加载聚类模型、双RandomForest预测模型和未来预测数据"""
     global clustering_model, clustering_scaler, prediction_artifacts, feature_names
     global future_predictions_df, DATASET_STATS
+    global rf_model_music, rf_model_artist
     
     try:
         # 加载聚类模型(字典格式)
@@ -92,10 +97,25 @@ def load_models():
         clustering_scaler = clustering_artifacts.get('scaler')
         print("✅ 聚类模型加载成功")
         
-        # 加载预测模型及相关信息
+        # 加载双RandomForest模型（新增）
+        try:
+            rf_model_music = joblib.load('rf_model_music.pkl')
+            print("✅ 音乐特征RandomForest模型加载成功")
+        except FileNotFoundError:
+            print("⚠️  未找到rf_model_music.pkl，音乐特征预测功能不可用")
+            rf_model_music = None
+        
+        try:
+            rf_model_artist = joblib.load('rf_model_artist.pkl')
+            print("✅ 艺术家特征RandomForest模型加载成功")
+        except FileNotFoundError:
+            print("⚠️  未找到rf_model_artist.pkl，艺术家分析功能不可用")
+            rf_model_artist = None
+        
+        # 加载旧版预测模型及相关信息（兼容性保留）
         prediction_artifacts = joblib.load('music_prediction_engine_final.pkl')
         feature_names = prediction_artifacts.get('features', [])
-        print(f"✅ 预测模型加载成功 - 特征数: {len(feature_names)}")
+        print(f"✅ 旧版预测模型加载成功 - 特征数: {len(feature_names)}")
         
         # 加载未来预测数据CSV
         try:
@@ -511,24 +531,25 @@ class MusicGeneticAlgorithm:
 def generate_ai_prompt(features: Dict, cluster_name: str) -> Dict:
     """
     根据音乐特征生成结构化数据供AI API使用
+    只包含13个音乐特征模型使用的纯音乐属性
     
     Args:
         features: 音乐特征字典
         cluster_name: 音乐风格名称
     
     Returns:
-        包含所有特征数值的字典
+        包含音乐特征数值的字典
     """
     # 调性映射
     key_names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
     key_name = key_names[int(features['key'])] if 0 <= features['key'] < 12 else 'Unknown'
     
-    # 构建结构化数据
+    # 构建结构化数据 - 只包含13个音乐特征
     prompt_data = {
         # 基本信息
         'style': cluster_name,
         
-        # 音频特征（保持0-1范围的原始值）
+        # 音频特征（0-1范围）
         'danceability': round(features['danceability'], 3),  # 可舞性
         'energy': round(features['energy'], 3),  # 能量
         'speechiness': round(features['speechiness'], 3),  # 语言性
@@ -545,16 +566,9 @@ def generate_ai_prompt(features: Dict, cluster_name: str) -> Dict:
         'loudness': round(features['loudness'], 2),  # 响度 (dB)
         'time_signature': int(features['time_signature']),  # 节拍
         
-        # 歌曲信息
-        'duration_min': round(features.get('duration_min', 3.5), 2),  # 时长（分钟）
-        'duration_sec': round(features.get('duration_min', 3.5) * 60, 0),  # 时长（秒）
-        
-        # 辅助信息
-        'artist_popularity': int(features.get('artist_popularity', 0)),  # 艺术家流行度
-        'artist_followers': int(features.get('artist_followers', 0)),  # 艺术家粉丝数
-        'track_name_length': int(features.get('track_name_length', 20)),  # 歌曲名长度
-        'album_total_tracks': int(features.get('album_total_tracks', 1)),  # 专辑曲目数
-        'track_number': int(features.get('track_number', 1))  # 音轨编号
+        # 歌曲时长
+        'duration_ms': int(features.get('duration_ms', 210000)),  # 时长（毫秒）
+        'duration_min': round(features.get('duration_ms', 210000) / 60000, 2)  # 时长（分钟）
     }
     
     return prompt_data
@@ -727,6 +741,247 @@ def get_styles():
         for k, v in CLUSTER_NAMES.items()
     ]
     return jsonify(styles)
+
+
+@app.route('/api/predict/music', methods=['POST'])
+def predict_music_popularity():
+    """
+    使用音乐特征预测流行度 (RandomForest模型)
+    
+    请求体:
+    {
+        "danceability": 0.7,
+        "energy": 0.8,
+        "key": 5,
+        "loudness": -5.0,
+        "mode": 1,
+        "speechiness": 0.05,
+        "acousticness": 0.2,
+        "instrumentalness": 0.0,
+        "liveness": 0.1,
+        "valence": 0.6,
+        "tempo": 120.0,
+        "duration_ms": 200000,
+        "time_signature": 4
+    }
+    """
+    try:
+        if rf_model_music is None:
+            return jsonify({
+                'success': False,
+                'error': '音乐特征预测模型未加载'
+            }), 503
+        
+        data = request.json
+        
+        # 13个音频特征（按训练时的顺序）
+        features_order = [
+            'danceability', 'energy', 'key', 'loudness', 'mode', 'speechiness',
+            'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo',
+            'duration_ms', 'time_signature'
+        ]
+        
+        # 构建特征向量
+        X = []
+        for feat in features_order:
+            value = data.get(feat, 0)
+            X.append(value)
+        
+        # 预测
+        X_array = np.array([X])
+        predicted_popularity = rf_model_music.predict(X_array)[0]
+        
+        # 限制在0-100范围
+        predicted_popularity = max(0, min(100, predicted_popularity))
+        
+        return jsonify({
+            'success': True,
+            'predicted_popularity': round(float(predicted_popularity), 2),
+            'model': 'RandomForest_Music',
+            'features_used': features_order
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'预测失败: {str(e)}'
+        }), 500
+
+
+@app.route('/api/predict/artist', methods=['POST'])
+def predict_artist_popularity():
+    """
+    使用艺术家/专辑特征预测流行度 (RandomForest模型)
+    
+    请求体:
+    {
+        "release_year": 2025,
+        "release_month": 6,
+        "artist_popularity": 75,
+        "artist_followers": 1000000,
+        "album_total_tracks": 12,
+        "track_number": 5
+    }
+    """
+    try:
+        if rf_model_artist is None:
+            return jsonify({
+                'success': False,
+                'error': '艺术家特征预测模型未加载'
+            }), 503
+        
+        data = request.json
+        
+        # 提取特征
+        release_year = data.get('release_year', datetime.now().year)
+        release_month = data.get('release_month', 1)
+        
+        # 计算正弦/余弦月份特征
+        release_month_sin = np.sin(2 * np.pi * release_month / 12)
+        release_month_cos = np.cos(2 * np.pi * release_month / 12)
+        
+        artist_popularity = data.get('artist_popularity', 0)
+        artist_followers = data.get('artist_followers', 0)
+        album_total_tracks = data.get('album_total_tracks', 1)
+        track_number = data.get('track_number', 1)
+        
+        # 7个特征（按训练时的顺序）
+        X = np.array([[
+            release_year,
+            release_month_sin,
+            release_month_cos,
+            artist_popularity,
+            artist_followers,
+            album_total_tracks,
+            track_number
+        ]])
+        
+        # 预测
+        predicted_popularity = rf_model_artist.predict(X)[0]
+        
+        # 限制在0-100范围
+        predicted_popularity = max(0, min(100, predicted_popularity))
+        
+        return jsonify({
+            'success': True,
+            'predicted_popularity': round(float(predicted_popularity), 2),
+            'model': 'RandomForest_Artist',
+            'features_used': [
+                'release_year', 'release_month_sin', 'release_month_cos',
+                'artist_popularity', 'artist_followers', 'album_total_tracks', 'track_number'
+            ],
+            'input_month': release_month
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'预测失败: {str(e)}'
+        }), 500
+
+
+@app.route('/api/predict/dual', methods=['POST'])
+def predict_dual_models():
+    """
+    同时使用两个模型预测流行度并对比
+    
+    请求体: 包含所有特征的完整数据
+    """
+    try:
+        data = request.json
+        
+        # 调用音乐特征预测
+        music_result = None
+        if rf_model_music is not None:
+            music_features = {
+                'danceability': data.get('danceability', 0),
+                'energy': data.get('energy', 0),
+                'key': data.get('key', 0),
+                'loudness': data.get('loudness', 0),
+                'mode': data.get('mode', 0),
+                'speechiness': data.get('speechiness', 0),
+                'acousticness': data.get('acousticness', 0),
+                'instrumentalness': data.get('instrumentalness', 0),
+                'liveness': data.get('liveness', 0),
+                'valence': data.get('valence', 0),
+                'tempo': data.get('tempo', 0),
+                'duration_ms': data.get('duration_ms', 0),
+                'time_signature': data.get('time_signature', 4)
+            }
+            
+            features_order = list(music_features.keys())
+            X_music = np.array([[music_features[f] for f in features_order]])
+            music_pred = rf_model_music.predict(X_music)[0]
+            music_result = {
+                'predicted_popularity': round(float(max(0, min(100, music_pred))), 2),
+                'model': 'RandomForest_Music'
+            }
+        
+        # 调用艺术家特征预测
+        artist_result = None
+        if rf_model_artist is not None:
+            release_month = data.get('release_month', datetime.now().month)
+            release_month_sin = np.sin(2 * np.pi * release_month / 12)
+            release_month_cos = np.cos(2 * np.pi * release_month / 12)
+            
+            X_artist = np.array([[
+                data.get('release_year', datetime.now().year),
+                release_month_sin,
+                release_month_cos,
+                data.get('artist_popularity', 0),
+                data.get('artist_followers', 0),
+                data.get('album_total_tracks', 1),
+                data.get('track_number', 1)
+            ]])
+            
+            artist_pred = rf_model_artist.predict(X_artist)[0]
+            artist_result = {
+                'predicted_popularity': round(float(max(0, min(100, artist_pred))), 2),
+                'model': 'RandomForest_Artist'
+            }
+        
+        # 计算差异和综合预测
+        difference = None
+        weighted_avg = None
+        
+        if music_result and artist_result:
+            difference = abs(music_result['predicted_popularity'] - artist_result['predicted_popularity'])
+            # 加权平均（音乐特征权重更高，因为更相关）
+            weighted_avg = round(music_result['predicted_popularity'] * 0.7 + artist_result['predicted_popularity'] * 0.3, 2)
+        
+        return jsonify({
+            'success': True,
+            'music_model': music_result,
+            'artist_model': artist_result,
+            'difference': round(difference, 2) if difference else None,
+            'weighted_average': weighted_avg,
+            'recommendation': generate_recommendation(music_result, artist_result, difference)
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'双模型预测失败: {str(e)}'
+        }), 500
+
+
+def generate_recommendation(music_result, artist_result, difference):
+    """根据双模型预测结果生成建议"""
+    if not music_result or not artist_result:
+        return "数据不足，无法生成建议"
+    
+    music_pop = music_result['predicted_popularity']
+    artist_pop = artist_result['predicted_popularity']
+    
+    if difference < 5:
+        return f"✅ 两个模型预测一致（差异 {difference:.1f}），预测较为可靠"
+    elif difference < 15:
+        return f"⚠️ 两个模型预测存在一定差异（差异 {difference:.1f}），建议综合参考"
+    else:
+        if music_pop > artist_pop:
+            return f"📊 音乐特征模型预测更高（+{difference:.1f}），歌曲本身质量可能优于艺术家影响力"
+        else:
+            return f"👤 艺术家模型预测更高（+{difference:.1f}），艺术家影响力可能大于歌曲本身质量"
 
 
 @app.route('/api/generate', methods=['POST'])

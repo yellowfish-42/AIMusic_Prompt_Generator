@@ -1,4 +1,5 @@
 // ==================== 全局变量 ====================
+let hasStarted = false;  // 欢迎页面状态
 let currentResult = null;
 let lockedFeatures = {};  // 存储锁定的特征值
 const API_BASE = '';
@@ -159,6 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loadStyles();
     setupEventListeners();
     initializeFeatureLockPanel();
+    initModeTabs();  // 初始化模式切换
+    initFeaturesToggle();  // 初始化特征列表折叠功能
 });
 
 // ==================== 加载音乐风格 ====================
@@ -234,11 +237,20 @@ function setupStyleTooltip(selectElement, styles) {
 // ==================== 事件监听 ====================
 function setupEventListeners() {
     // 运行时间滑块
-    const slider = document.getElementById('runtimeSlider');
-    const valueDisplay = document.getElementById('runtimeValue');
-    slider.addEventListener('input', (e) => {
-        valueDisplay.textContent = e.target.value;
+    const runtimeSlider = document.getElementById('runtimeSlider');
+    const runtimeValueDisplay = document.getElementById('runtimeValue');
+    runtimeSlider.addEventListener('input', (e) => {
+        runtimeValueDisplay.textContent = e.target.value + ' 秒';
     });
+    
+    // 艺术家流行度滑块
+    const artistPopSlider = document.getElementById('artistPopularity');
+    const artistPopValue = document.getElementById('artistPopularityValue');
+    if (artistPopSlider && artistPopValue) {
+        artistPopSlider.addEventListener('input', (e) => {
+            artistPopValue.textContent = e.target.value;
+        });
+    }
     
     // 风格选择 - 仅用于悬浮提示
     document.getElementById('styleSelect').addEventListener('change', () => {
@@ -265,6 +277,67 @@ function setupEventListeners() {
     
     // 重新生成
     document.getElementById('regenerateBtn').addEventListener('click', generateMusic);
+    
+    // 欢迎页面 - 开始体验按钮
+    initLandingPage();
+    
+    // 艺术家预测按钮（新增）
+    document.getElementById('predictArtistBtn').addEventListener('click', predictArtistPopularity);
+}
+
+// ==================== 欢迎页面初始化 ====================
+function initLandingPage() {
+    const landingPage = document.getElementById('landingPage');
+    const mainApp = document.getElementById('mainApp');
+    const startBtn = document.getElementById('startBtn');
+    
+    // 检查是否已经访问过（使用sessionStorage）
+    const hasVisited = sessionStorage.getItem('hasVisited');
+    
+    if (hasVisited) {
+        // 已访问过，直接显示主应用
+        landingPage.style.display = 'none';
+        mainApp.classList.remove('main-app');
+        mainApp.classList.add('main-app-active');
+        hasStarted = true;
+    } else {
+        // 首次访问，显示欢迎页面
+        mainApp.style.display = 'none';
+    }
+    
+    // 开始体验按钮点击事件
+    startBtn.addEventListener('click', () => {
+        startApplication();
+    });
+}
+
+function startApplication() {
+    const landingPage = document.getElementById('landingPage');
+    const mainApp = document.getElementById('mainApp');
+    
+    // 标记为已访问
+    sessionStorage.setItem('hasVisited', 'true');
+    hasStarted = true;
+    
+    // 添加退出动画
+    landingPage.classList.add('fade-exit');
+    
+    // 等待退出动画完成后显示主应用
+    setTimeout(() => {
+        landingPage.style.display = 'none';
+        mainApp.style.display = 'flex';
+        mainApp.classList.remove('main-app');
+        mainApp.classList.add('main-app-active');
+        
+        // 添加进入动画
+        mainApp.classList.add('fade-enter');
+        
+        // 移除动画类
+        setTimeout(() => {
+            landingPage.classList.remove('fade-exit');
+            mainApp.classList.remove('fade-enter');
+        }, 600);
+    }, 500);
 }
 
 // ==================== 初始化特征锁定面板 ====================
@@ -274,46 +347,50 @@ function initializeFeatureLockPanel() {
     
     Object.entries(FEATURE_DEFINITIONS).forEach(([featureKey, featureInfo]) => {
         const item = document.createElement('div');
-        item.className = 'feature-lock-item';
+        item.className = 'feature-lock-row';
         item.id = `lock-item-${featureKey}`;
         
+        // 计算初始值
+        const defaultValue = featureInfo.default;
+        
         item.innerHTML = `
-            <div class="feature-lock-header">
-                <div class="feature-lock-name">
-                    <span class="feature-tooltip" data-feature="${featureKey}">
-                        ${featureInfo.name}
-                        <span class="tooltip-text">${featureInfo.description}</span>
-                    </span>
-                </div>
-                <div class="lock-toggle">
-                    <input type="checkbox" 
-                           id="lock-${featureKey}" 
-                           class="lock-checkbox"
-                           onchange="toggleFeatureLock('${featureKey}')">
-                    <label for="lock-${featureKey}" class="lock-label">🔒 锁定</label>
-                </div>
-            </div>
-            <div class="feature-input-container">
-                <input type="number" 
-                       id="input-${featureKey}"
-                       class="feature-input"
+            <label class="feature-row-label" data-tooltip="${featureInfo.description}">${featureInfo.name}</label>
+            <div class="feature-row-slider">
+                <input type="range" 
+                       id="slider-${featureKey}"
+                       class="feature-slider"
                        min="${featureInfo.range[0]}"
                        max="${featureInfo.range[1]}"
                        step="${featureInfo.step}"
-                       value="${featureInfo.default}"
-                       disabled
-                       placeholder="设置值"
-                       oninput="updateLockedFeatureValue('${featureKey}', false)"
-                       onblur="updateLockedFeatureValue('${featureKey}', true)">
+                       value="${defaultValue}"
+                       disabled>
             </div>
-            <div class="feature-range-hint">范围: ${featureInfo.range[0]} ~ ${featureInfo.range[1]}</div>
+            <span class="feature-row-value" id="value-${featureKey}">${defaultValue}</span>
+            <button class="feature-lock-btn" 
+                    id="lock-btn-${featureKey}"
+                    onclick="toggleFeatureLock('${featureKey}')">
+                🔓
+            </button>
         `;
         
         panel.appendChild(item);
+        
+        // 添加slider监听器
+        const slider = item.querySelector(`#slider-${featureKey}`);
+        const valueDisplay = item.querySelector(`#value-${featureKey}`);
+        
+        slider.addEventListener('input', function() {
+            let value = parseFloat(this.value);
+            // 格式化显示值
+            if (featureInfo.isInteger || featureKey === 'key' || featureKey === 'mode' || featureKey === 'time_signature') {
+                value = Math.round(value);
+                valueDisplay.textContent = value;
+            } else {
+                valueDisplay.textContent = value.toFixed(2);
+            }
+            updateLockedFeatureValue(featureKey, value);
+        });
     });
-    
-    // 添加tooltip位置动态调整
-    setupTooltipPositioning();
 }
 
 // ==================== 设置Tooltip动态定位 ====================
@@ -353,72 +430,38 @@ function toggleFeatureLockPanel() {
 
 // ==================== 切换单个特征锁定 ====================
 function toggleFeatureLock(featureKey) {
-    const checkbox = document.getElementById(`lock-${featureKey}`);
-    const input = document.getElementById(`input-${featureKey}`);
+    const lockBtn = document.getElementById(`lock-btn-${featureKey}`);
+    const slider = document.getElementById(`slider-${featureKey}`);
     const item = document.getElementById(`lock-item-${featureKey}`);
-    const featureInfo = FEATURE_DEFINITIONS[featureKey];
+    const valueDisplay = document.getElementById(`value-${featureKey}`);
     
-    if (checkbox.checked) {
-        // 启用输入框
-        input.disabled = false;
-        item.classList.add('locked');
-        
-        // 立即读取并保存当前值
-        updateLockedFeatureValue(featureKey);
-        showToast(`已锁定 ${featureInfo.name}`, 'success');
-    } else {
-        // 禁用输入框并移除锁定
-        input.disabled = true;
+    const isLocked = lockBtn.textContent === '🔒';
+    
+    if (isLocked) {
+        // 解锁
+        lockBtn.textContent = '🔓';
+        lockBtn.classList.remove('locked');
+        slider.disabled = true;
         item.classList.remove('locked');
         delete lockedFeatures[featureKey];
-        showToast(`已解锁 ${featureInfo.name}`, 'info');
+    } else {
+        // 锁定
+        lockBtn.textContent = '🔒';
+        lockBtn.classList.add('locked');
+        slider.disabled = false;
+        item.classList.add('locked');
+        
+        // 保存当前值
+        const value = parseFloat(slider.value);
+        lockedFeatures[featureKey] = value;
     }
 }
 
 // ==================== 更新锁定特征的值 ====================
-function updateLockedFeatureValue(featureKey, validateRange = false) {
-    const checkbox = document.getElementById(`lock-${featureKey}`);
-    const input = document.getElementById(`input-${featureKey}`);
-    const featureInfo = FEATURE_DEFINITIONS[featureKey];
-    
-    // 只有在锁定状态才更新
-    if (!checkbox.checked) {
-        return;
-    }
-    
-    // 读取值
-    let value = parseFloat(input.value);
-    
-    // 如果是空值或正在输入中，暂不验证（除非是blur事件）
-    if (!validateRange && (isNaN(value) || input.value === '')) {
-        return;
-    }
-    
-    // 验证范围（只在blur时或初始化时验证）
-    if (validateRange) {
-        if (isNaN(value) || input.value === '') {
-            value = featureInfo.default;
-            input.value = value;
-            showToast(`${featureInfo.name}不能为空，已重置为 ${value}`, 'warning');
-        } else if (value < featureInfo.range[0] || value > featureInfo.range[1]) {
-            value = Math.max(featureInfo.range[0], Math.min(featureInfo.range[1], value));
-            input.value = value;
-            showToast(`${featureInfo.name}值已调整到范围内: ${value}`, 'warning');
-        }
-    }
-    
-    // 如果是整数类型，取整
-    if (featureInfo.isInteger && !isNaN(value)) {
-        value = Math.round(value);
-        if (validateRange) {
-            input.value = value;
-        }
-    }
-    
-    // 只有有效值才更新锁定特征字典
-    if (!isNaN(value)) {
+function updateLockedFeatureValue(featureKey, value) {
+    // 只有在锁定状态才保存值
+    if (lockedFeatures.hasOwnProperty(featureKey)) {
         lockedFeatures[featureKey] = value;
-        console.log(`🔒 更新锁定特征: ${featureKey} = ${value}, 类型: ${typeof value}`);
     }
 }
 
@@ -438,21 +481,31 @@ async function generateMusic() {
     generateBtn.disabled = true;
     generateBtn.textContent = '🧬 正在生成...';
     
+    // 隐藏空状态和结果，显示骨架屏
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('resultContent').classList.add('hidden');
+    document.getElementById('skeletonLoader').classList.remove('hidden');
+    
     const progressSection = document.getElementById('progressSection');
-    const progressFill = document.getElementById('progressFill');
     const progressText = document.getElementById('progressText');
     
     progressSection.classList.remove('hidden');
-    progressFill.style.width = '0%';
     progressText.textContent = '正在初始化遗传算法...';
     
-    // 模拟进度条
+    // 更新进度文本（不再使用进度条）
     let progress = 0;
     const progressInterval = setInterval(() => {
         progress += (100 / runtime / 10);
         if (progress > 95) progress = 95;
-        progressFill.style.width = progress + '%';
-        progressText.textContent = `正在优化中... (${Math.round(progress)}%)`;
+        const messages = [
+            '正在初始化种群...',
+            '正在优化特征组合...',
+            '正在评估适应度...',
+            '正在进化迭代中...',
+            '即将完成...'
+        ];
+        const msgIndex = Math.min(Math.floor(progress / 20), messages.length - 1);
+        progressText.textContent = messages[msgIndex];
     }, 100);
     
     // 调试信息
@@ -478,12 +531,17 @@ async function generateMusic() {
         const result = await response.json();
         
         clearInterval(progressInterval);
-        progressFill.style.width = '100%';
         progressText.textContent = '✅ 生成完成!';
         
         if (result.success) {
             currentResult = result.data;
-            displayResult(result.data);
+            
+            // 延迟显示结果，创建平滑过渡
+            setTimeout(() => {
+                document.getElementById('skeletonLoader').classList.add('hidden');
+                displayResult(result.data);
+            }, 500);
+            
             showToast('音乐特征生成成功!', 'success');
         } else {
             throw new Error(result.error || '生成失败');
@@ -491,6 +549,8 @@ async function generateMusic() {
         
     } catch (error) {
         clearInterval(progressInterval);
+        document.getElementById('skeletonLoader').classList.add('hidden');
+        document.getElementById('emptyState').classList.remove('hidden');
         showToast('生成失败: ' + error.message, 'error');
         console.error(error);
     } finally {
@@ -503,19 +563,37 @@ async function generateMusic() {
 }
 
 // ==================== 展示结果 ====================
+let radarChart = null; // 存储雷达图实例
+
 function displayResult(data) {
-    // 隐藏空状态,显示结果
+    // 显示结果内容
     document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('skeletonLoader').classList.add('hidden');
     document.getElementById('resultContent').classList.remove('hidden');
     
-    // 概览数据
-    document.getElementById('popularityScore').textContent = data.predicted_popularity.toFixed(1);
-    document.getElementById('clusterName').textContent = data.cluster_name.split('(')[0].trim();
-    document.getElementById('generations').textContent = data.generations;
+    // 更新圆形进度环
+    updateCircularProgress(data.predicted_popularity);
     
-    // 特征详情
+    // 概览数据
+    document.getElementById('clusterName').textContent = data.cluster_name.split('(')[0].trim();
+    
+    // 显示BPM而不是迭代代数
+    const bpmValue = data.features.tempo ? Math.round(data.features.tempo) : '--';
+    document.getElementById('bpmValue').textContent = bpmValue;
+    
+    // 创建雷达图
+    createRadarChart(data.features);
+    
+    // 特征详情（完整列表） - 只显示音乐特征模型使用的13个特征
     const featuresGrid = document.getElementById('featuresGrid');
     featuresGrid.innerHTML = '';
+    
+    // 音乐特征模型使用的特征列表（13个）
+    const musicModelFeatures = [
+        'danceability', 'energy', 'key', 'loudness', 'mode', 
+        'speechiness', 'acousticness', 'instrumentalness', 'liveness', 
+        'valence', 'tempo', 'duration_ms', 'time_signature'
+    ];
     
     const featureDisplayNames = {
         'danceability': '可舞性',
@@ -530,16 +608,13 @@ function displayResult(data) {
         'valence': '情感价',
         'tempo': '节奏(BPM)',
         'time_signature': '节拍',
-        'artist_popularity': '艺术家流行度',
-        'artist_followers': '艺术家粉丝量',
-        'duration_min': '歌曲时长(分钟)',
-        'track_name_length': '歌曲名长度',
-        'album_total_tracks': '专辑曲目数',
-        'track_number': '音轨编号'
+        'duration_ms': '歌曲时长'
     };
     
-    Object.entries(data.features).forEach(([key, value]) => {
-        if (featureDisplayNames[key]) {
+    // 只显示音乐模型用到的特征
+    musicModelFeatures.forEach(key => {
+        if (data.features[key] !== undefined && featureDisplayNames[key]) {
+            const value = data.features[key];
             const item = document.createElement('div');
             item.className = 'feature-item';
             
@@ -550,13 +625,10 @@ function displayResult(data) {
                     displayValue = keys[Math.round(value)] || value;
                 } else if (key === 'mode') {
                     displayValue = value === 1 ? '大调' : '小调';
-                } else if (key === 'tempo' || key === 'time_signature' || key === 'artist_popularity' || 
-                           key === 'track_name_length' || key === 'album_total_tracks' || key === 'track_number') {
+                } else if (key === 'tempo' || key === 'time_signature') {
                     displayValue = Math.round(value);
-                } else if (key === 'artist_followers') {
-                    displayValue = Math.round(value).toLocaleString();  // 添加千位分隔符
-                } else if (key === 'duration_min') {
-                    displayValue = value.toFixed(2) + ' 分钟';
+                } else if (key === 'duration_ms') {
+                    displayValue = (value / 60000).toFixed(2) + ' 分钟';
                 } else if (value < 1 && value > 0) {
                     displayValue = value.toFixed(2);
                 } else {
@@ -569,21 +641,13 @@ function displayResult(data) {
             
             item.innerHTML = `
                 <div class="feature-name">
-                    <span class="feature-tooltip result-tooltip" data-feature="${key}">
-                        ${featureDisplayNames[key]}
-                        <span class="tooltip-text">${description}</span>
-                    </span>
+                    ${featureDisplayNames[key]}
                 </div>
-                <div class="feature-value">${displayValue}</div>
+                <div class="feature-value" title="${description}">${displayValue}</div>
             `;
             featuresGrid.appendChild(item);
         }
     });
-    
-    // 为结果区域的tooltip添加定位
-    setTimeout(() => {
-        setupTooltipPositioning();
-    }, 100);
     
     // AI提示词数据 - 显示为JSON格式
     const promptElement = document.getElementById('aiPrompt');
@@ -755,4 +819,359 @@ function showToast(message, type = 'info') {
     setTimeout(() => {
         toast.classList.add('hidden');
     }, 3000);
+}
+
+// ==================== 圆形进度环 ====================
+function updateCircularProgress(popularity) {
+    const progressBar = document.getElementById('popularityProgressBar');
+    const progressText = document.getElementById('popularityScore');
+    
+    // 计算进度百分比
+    const percentage = Math.min(100, Math.max(0, popularity));
+    const circumference = 2 * Math.PI * 70; // r=70 (更大的圆)
+    const offset = circumference - (percentage / 100) * circumference;
+    
+    // 动画更新
+    setTimeout(() => {
+        progressBar.style.strokeDashoffset = offset;
+        progressText.textContent = percentage.toFixed(1);
+    }, 100);
+    
+    // 根据分数改变颜色
+    let color;
+    if (percentage >= 70) {
+        color = '#1DB954'; // 绿色 - 高分
+    } else if (percentage >= 40) {
+        color = '#FFA500'; // 橙色 - 中等
+    } else {
+        color = '#FF4444'; // 红色 - 低分
+    }
+    progressBar.style.stroke = color;
+}
+
+// ==================== 雷达图 ====================
+function createRadarChart(features) {
+    // 销毁旧图表
+    if (radarChart) {
+        radarChart.destroy();
+    }
+    
+    // 筛选0-1范围的音频特征用于雷达图
+    const radarFeatures = {
+        'danceability': '可舞性',
+        'energy': '能量',
+        'speechiness': '语言性',
+        'acousticness': '原声性',
+        'instrumentalness': '器乐性',
+        'liveness': '现场感',
+        'valence': '情感价'
+    };
+    
+    const labels = [];
+    const values = [];
+    
+    Object.entries(radarFeatures).forEach(([key, label]) => {
+        if (features[key] !== undefined) {
+            labels.push(label);
+            values.push((features[key] * 100).toFixed(1)); // 转换为0-100显示
+        }
+    });
+    
+    const ctx = document.getElementById('featuresRadarChart').getContext('2d');
+    
+    radarChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: '音频特征',
+                data: values,
+                fill: true,
+                backgroundColor: 'rgba(29, 185, 84, 0.2)',
+                borderColor: '#1DB954',
+                pointBackgroundColor: '#1DB954',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: '#1DB954',
+                borderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#1DB954',
+                    borderColor: '#1DB954',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed.r + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100,
+                    min: 0,
+                    ticks: {
+                        stepSize: 20,
+                        color: '#888',
+                        backdropColor: 'transparent',
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    pointLabels: {
+                        color: '#b8b8b8',
+                        font: {
+                            size: 13,
+                            weight: '600'
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ==================== 模式切换 ====================
+function initModeTabs() {
+    const musicTab = document.getElementById('tabMusicMode');
+    const artistTab = document.getElementById('tabArtistMode');
+    const musicPanel = document.getElementById('musicModePanel');
+    const artistPanel = document.getElementById('artistModePanel');
+    
+    // 切换到音乐生成模式
+    musicTab.addEventListener('click', () => {
+        musicTab.classList.add('active');
+        artistTab.classList.remove('active');
+        musicPanel.classList.add('active');
+        artistPanel.classList.add('hidden');
+        musicPanel.classList.remove('hidden');
+        artistPanel.classList.remove('active');
+        
+        // 平滑滚动到顶部
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+    
+    // 切换到艺术家分析模式
+    artistTab.addEventListener('click', () => {
+        artistTab.classList.add('active');
+        musicTab.classList.remove('active');
+        artistPanel.classList.add('active');
+        musicPanel.classList.add('hidden');
+        artistPanel.classList.remove('hidden');
+        musicPanel.classList.remove('active');
+        
+        // 平滑滚动到顶部 - 确保用户能立即看到艺术家面板内容
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+}
+
+// ==================== 特征列表折叠功能 ====================
+function initFeaturesToggle() {
+    const toggleHeader = document.getElementById('featuresToggle');
+    const contentContainer = document.getElementById('featuresGridContainer');
+    const toggleText = toggleHeader.querySelector('.toggle-text');
+    
+    if (!toggleHeader || !contentContainer) return;
+    
+    // 默认折叠状态
+    let isExpanded = false;
+    
+    toggleHeader.addEventListener('click', () => {
+        isExpanded = !isExpanded;
+        
+        if (isExpanded) {
+            // 展开
+            contentContainer.classList.remove('collapsed');
+            contentContainer.classList.add('expanded');
+            toggleHeader.classList.add('expanded');
+            toggleText.textContent = '收起';
+        } else {
+            // 折叠
+            contentContainer.classList.remove('expanded');
+            contentContainer.classList.add('collapsed');
+            toggleHeader.classList.remove('expanded');
+            toggleText.textContent = '展开';
+        }
+    });
+}
+
+// ==================== 艺术家流行度预测 ====================
+async function predictArtistPopularity() {
+    const releaseYear = parseInt(document.getElementById('releaseYear').value);
+    const releaseMonth = parseInt(document.getElementById('releaseMonth').value);
+    const artistPopularity = parseInt(document.getElementById('artistPopularity').value);
+    const artistFollowers = parseInt(document.getElementById('artistFollowers').value);
+    const albumTotalTracks = parseInt(document.getElementById('albumTotalTracks').value);
+    const trackNumber = parseInt(document.getElementById('trackNumber').value);
+    
+    // 验证输入
+    if (artistPopularity < 0 || artistPopularity > 100) {
+        showToast('艺术家流行度必须在0-100之间', 'error');
+        return;
+    }
+    
+    try {
+        showToast('正在预测...', 'info');
+        
+        const response = await fetch(`${API_BASE}/api/predict/artist`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                release_year: releaseYear,
+                release_month: releaseMonth,
+                artist_popularity: artistPopularity,
+                artist_followers: artistFollowers,
+                album_total_tracks: albumTotalTracks,
+                track_number: trackNumber
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            displayArtistResult(result, {
+                releaseYear,
+                releaseMonth,
+                artistPopularity,
+                artistFollowers,
+                albumTotalTracks,
+                trackNumber
+            });
+            showToast('预测完成!', 'success');
+        } else {
+            throw new Error(result.error || '预测失败');
+        }
+    } catch (error) {
+        showToast('预测失败: ' + error.message, 'error');
+        console.error(error);
+    }
+}
+
+function displayArtistResult(result, inputs) {
+    const emptyState = document.getElementById('artistEmptyState');
+    const resultContent = document.getElementById('artistResultContent');
+    
+    // 切换显示
+    emptyState.classList.add('hidden');
+    resultContent.classList.remove('hidden');
+    
+    // 显示预测流行度
+    document.getElementById('artistPredictedPop').textContent = result.predicted_popularity.toFixed(1);
+    
+    // 计算艺术家影响力等级
+    const influence = inputs.artistPopularity >= 70 ? '高' : inputs.artistPopularity >= 40 ? '中' : '低';
+    document.getElementById('artistInfluence').textContent = influence;
+    
+    // 显示发行信息
+    const monthNames = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+    document.getElementById('releaseInfo').textContent = `${inputs.releaseYear}年${monthNames[inputs.releaseMonth-1]}`;
+    
+    // 显示输入特征
+    const featuresGrid = document.getElementById('artistFeaturesGrid');
+    featuresGrid.innerHTML = `
+        <div class="feature-item">
+            <span class="feature-name">发行年份</span>
+            <span class="feature-value">${inputs.releaseYear}</span>
+        </div>
+        <div class="feature-item">
+            <span class="feature-name">发行月份</span>
+            <span class="feature-value">${monthNames[inputs.releaseMonth-1]} (${inputs.releaseMonth})</span>
+        </div>
+        <div class="feature-item">
+            <span class="feature-name">艺术家流行度</span>
+            <span class="feature-value">${inputs.artistPopularity}/100</span>
+        </div>
+        <div class="feature-item">
+            <span class="feature-name">艺术家粉丝数</span>
+            <span class="feature-value">${inputs.artistFollowers.toLocaleString()}</span>
+        </div>
+        <div class="feature-item">
+            <span class="feature-name">专辑总曲目</span>
+            <span class="feature-value">${inputs.albumTotalTracks}</span>
+        </div>
+        <div class="feature-item">
+            <span class="feature-name">曲目编号</span>
+            <span class="feature-value">#${inputs.trackNumber}</span>
+        </div>
+    `;
+    
+    // 生成洞察建议
+    const insights = generateArtistInsights(result.predicted_popularity, inputs);
+    const insightsContent = document.getElementById('artistInsights');
+    insightsContent.innerHTML = insights.map(insight => 
+        `<div class="insight-item">${insight}</div>`
+    ).join('');
+}
+
+function generateArtistInsights(predictedPop, inputs) {
+    const insights = [];
+    
+    // 流行度评价
+    if (predictedPop >= 70) {
+        insights.push('🎯 <strong>预测流行度较高</strong>：该曲目有很大潜力获得关注');
+    } else if (predictedPop >= 40) {
+        insights.push('📊 <strong>预测流行度中等</strong>：属于正常表现范围');
+    } else {
+        insights.push('💡 <strong>预测流行度较低</strong>：可能需要额外推广支持');
+    }
+    
+    // 艺术家影响力分析
+    if (inputs.artistPopularity >= 70) {
+        insights.push('👤 <strong>艺术家影响力强</strong>：较高的流行度有助于新歌推广');
+    } else if (inputs.artistPopularity < 30) {
+        insights.push('👤 <strong>建议提升艺术家知名度</strong>：增加社交媒体互动和演出曝光');
+    }
+    
+    // 粉丝数分析
+    if (inputs.artistFollowers >= 1000000) {
+        insights.push('🔥 <strong>粉丝基础雄厚</strong>：百万级粉丝将带来强大传播力');
+    } else if (inputs.artistFollowers < 10000) {
+        insights.push('📢 <strong>建议扩大粉丝群</strong>：通过合作、宣传增加关注者');
+    }
+    
+    // 发行时间分析
+    const summerMonths = [6, 7, 8];
+    const winterMonths = [12, 1, 2];
+    if (summerMonths.includes(inputs.releaseMonth)) {
+        insights.push('☀️ <strong>夏季发行</strong>：适合发布欢快、节奏感强的作品');
+    } else if (winterMonths.includes(inputs.releaseMonth)) {
+        insights.push('❄️ <strong>冬季发行</strong>：适合发布抒情、温暖主题的作品');
+    }
+    
+    // 专辑策略
+    if (inputs.trackNumber <= 3) {
+        insights.push('🎵 <strong>专辑前排曲目</strong>：作为开场曲更容易被听众发现');
+    }
+    
+    if (inputs.albumTotalTracks > 15) {
+        insights.push('💿 <strong>大型专辑</strong>：曲目较多，建议重点推广核心单曲');
+    }
+    
+    return insights;
 }
