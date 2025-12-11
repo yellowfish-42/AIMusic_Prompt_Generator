@@ -545,6 +545,10 @@ def generate_ai_prompt(features: Dict, cluster_name: str) -> Dict:
     key_name = key_names[int(features['key'])] if 0 <= features['key'] < 12 else 'Unknown'
     
     # 构建结构化数据 - 只包含13个音乐特征
+    # 注意：GA优化器返回的是duration_min，需要转换为duration_ms
+    duration_min = features.get('duration_min', 3.5)
+    duration_ms = int(duration_min * 60000)
+    
     prompt_data = {
         # 基本信息
         'style': cluster_name,
@@ -567,8 +571,8 @@ def generate_ai_prompt(features: Dict, cluster_name: str) -> Dict:
         'time_signature': int(features['time_signature']),  # 节拍
         
         # 歌曲时长
-        'duration_ms': int(features.get('duration_ms', 210000)),  # 时长（毫秒）
-        'duration_min': round(features.get('duration_ms', 210000) / 60000, 2)  # 时长（分钟）
+        'duration_ms': duration_ms,  # 时长（毫秒）
+        'duration_min': round(duration_min, 2)  # 时长（分钟）
     }
     
     return prompt_data

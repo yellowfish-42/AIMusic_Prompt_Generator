@@ -349,8 +349,22 @@
                             </div>
                             <div id="aiPromptContent" class="ai-content hidden"></div>
                             <div id="aiPromptLoading" class="ai-loading hidden">
-                                <div class="loading-spinner"></div>
-                                <span>AI正在生成提示词...</span>
+                                <!-- 音频波形动画 -->
+                                <div class="ai-audio-wave">
+                                    <div class="ai-wave-bar"></div>
+                                    <div class="ai-wave-bar"></div>
+                                    <div class="ai-wave-bar"></div>
+                                    <div class="ai-wave-bar"></div>
+                                    <div class="ai-wave-bar"></div>
+                                    <div class="ai-wave-bar"></div>
+                                    <div class="ai-wave-bar"></div>
+                                    <div class="ai-wave-bar"></div>
+                                </div>
+                                <!-- 终端风格状态文本 -->
+                                <div class="ai-terminal-text">
+                                    <span id="aiStatusText" class="status-text">正在分析音频特征</span>
+                                    <span class="cursor-blink">_</span>
+                                </div>
                             </div>
                         </div>
                         

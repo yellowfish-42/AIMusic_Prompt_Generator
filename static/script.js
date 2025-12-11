@@ -123,8 +123,8 @@ const FEATURE_DEFINITIONS = {
     },
     'duration_min': {
         name: '歌曲时长(分钟)',
-        description: '歌曲的总时长，单位为分钟',
-        range: [0.5, 20],
+        description: '歌曲的总时长，单位为分钟(GA搜索范围: 1-5分钟)',
+        range: [1.0, 5.0],
         step: 0.1,
         default: 3.5,
         isInteger: false
@@ -345,7 +345,16 @@ function initializeFeatureLockPanel() {
     const panel = document.getElementById('featureLockPanel');
     panel.innerHTML = '';
     
-    Object.entries(FEATURE_DEFINITIONS).forEach(([featureKey, featureInfo]) => {
+    // 只显示14个纯音乐属性，排除非音乐属性
+    const musicOnlyFeatures = [
+        'danceability', 'energy', 'loudness', 'speechiness',
+        'acousticness', 'instrumentalness', 'liveness', 'valence',
+        'tempo', 'key', 'mode', 'time_signature', 'duration_min'
+    ];
+    
+    Object.entries(FEATURE_DEFINITIONS)
+        .filter(([featureKey]) => musicOnlyFeatures.includes(featureKey))
+        .forEach(([featureKey, featureInfo]) => {
         const item = document.createElement('div');
         item.className = 'feature-lock-row';
         item.id = `lock-item-${featureKey}`;
@@ -776,6 +785,9 @@ async function generateAiPrompt() {
     btn.disabled = true;
     btn.textContent = '生成中...';
     
+    // 启动状态文本循环
+    const statusInterval = startAiStatusCycle();
+    
     try {
         const response = await fetch(`${API_BASE}/api/generate-ai-prompt`, {
             method: 'POST',
@@ -805,9 +817,37 @@ async function generateAiPrompt() {
         showToast('生成失败: ' + error.message, 'error');
         console.error(error);
     } finally {
+        // 停止状态文本循环
+        clearInterval(statusInterval);
         btn.disabled = false;
         btn.textContent = '✨ 生成AI提示词';
     }
+}
+
+// ==================== AI状态文本循环 ====================
+function startAiStatusCycle() {
+    const statusMessages = [
+        '正在分析音频特征',
+        '提取情感与风格标签',
+        '匹配 DeepSeek 模型参数',
+        '生成最佳提示词'
+    ];
+    
+    let currentIndex = 0;
+    const statusTextElement = document.getElementById('aiStatusText');
+    
+    // 立即显示第一条消息
+    if (statusTextElement) {
+        statusTextElement.textContent = statusMessages[0];
+    }
+    
+    // 每800ms切换一次
+    return setInterval(() => {
+        currentIndex = (currentIndex + 1) % statusMessages.length;
+        if (statusTextElement) {
+            statusTextElement.textContent = statusMessages[currentIndex];
+        }
+    }, 800);
 }
 
 // ==================== Toast通知 ====================

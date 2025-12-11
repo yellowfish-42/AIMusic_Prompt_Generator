@@ -2262,11 +2262,126 @@ small {
 
 .ai-loading {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 15px;
-    padding: 30px;
+    gap: 25px;
+    padding: 40px 30px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(29, 185, 84, 0.2);
+    animation: loadingPulse 2s ease-in-out infinite;
+}
+
+@keyframes loadingPulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(29, 185, 84, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(29, 185, 84, 0.4);
+    }
+}
+
+/* 音频波形动画 */
+.ai-audio-wave {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 6px;
+    height: 60px;
+}
+
+.ai-wave-bar {
+    width: 6px;
+    background: linear-gradient(180deg, var(--spotify-green) 0%, #22c55e 100%);
+    border-radius: 3px;
+    animation: waveAnimation 1.2s ease-in-out infinite;
+    box-shadow: 0 0 10px rgba(29, 185, 84, 0.5);
+}
+
+.ai-wave-bar:nth-child(1) {
+    animation-delay: 0s;
+    height: 20px;
+}
+
+.ai-wave-bar:nth-child(2) {
+    animation-delay: 0.1s;
+    height: 35px;
+}
+
+.ai-wave-bar:nth-child(3) {
+    animation-delay: 0.2s;
+    height: 50px;
+}
+
+.ai-wave-bar:nth-child(4) {
+    animation-delay: 0.3s;
+    height: 40px;
+}
+
+.ai-wave-bar:nth-child(5) {
+    animation-delay: 0.4s;
+    height: 55px;
+}
+
+.ai-wave-bar:nth-child(6) {
+    animation-delay: 0.5s;
+    height: 30px;
+}
+
+.ai-wave-bar:nth-child(7) {
+    animation-delay: 0.6s;
+    height: 45px;
+}
+
+.ai-wave-bar:nth-child(8) {
+    animation-delay: 0.7s;
+    height: 25px;
+}
+
+@keyframes waveAnimation {
+    0%, 100% {
+        transform: scaleY(0.5);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scaleY(1);
+        opacity: 1;
+    }
+}
+
+/* 终端风格文本 */
+.ai-terminal-text {
+    font-family: 'Courier New', 'Consolas', monospace;
+    font-size: 16px;
     color: var(--spotify-green);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.status-text {
+    position: relative;
+}
+
+/* 光标闪烁效果 */
+.cursor-blink {
+    font-weight: 400;
+    animation: cursorBlink 0.8s step-end infinite;
+    color: var(--spotify-green);
+    font-size: 20px;
+    line-height: 1;
+}
+
+@keyframes cursorBlink {
+    0%, 50% {
+        opacity: 1;
+    }
+    51%, 100% {
+        opacity: 0;
+    }
 }
 
 .loading-spinner {
