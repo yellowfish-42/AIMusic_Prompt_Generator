@@ -114,8 +114,8 @@ python app.py
 
 | 模型 | 输入特征数 | 用途 | R² | MAE |
 |------|-----------|------|-----|-----|
-| RandomForest_Music | 13 | AI音乐生成 | ~0.45 | ~12.5 |
-| RandomForest_Artist | 7 | 艺术家分析 | ~0.48 | ~11.8 |
+| RandomForest_Music | 13 | AI音乐生成 | ~0.2049 | ~14.5499 |
+| RandomForest_Artist | 7 | 艺术家分析 | ~0.4140 | ~13.4767 |
 
 ## 🧠 核心原理
 
