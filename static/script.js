@@ -157,6 +157,13 @@ const FEATURE_DEFINITIONS = {
 
 // ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', () => {
+    // 检查外部资源加载状态
+    if (typeof Chart === 'undefined') {
+        console.warn('⚠️ Chart.js未加载！雷达图功能将不可用。');
+        console.warn('这可能是因为无法访问CDN: https://cdn.jsdelivr.net');
+        console.warn('解决方案: 确保网络能访问外部CDN，或联系管理员配置本地Chart.js');
+    }
+    
     loadStyles();
     setupEventListeners();
     initializeFeatureLockPanel();
@@ -583,15 +590,33 @@ function displayResult(data) {
     // 更新圆形进度环
     updateCircularProgress(data.predicted_popularity);
     
-    // 概览数据
-    document.getElementById('clusterName').textContent = data.cluster_name.split('(')[0].trim();
+    // 显示音乐流派（track_genre）- 格式化英文显示
+    const genreElement = document.getElementById('genreValue');
+    if (genreElement) {
+        const trackGenre = data.track_genre || data.features.track_genre || 'unknown';
+        // 格式化显示：首字母大写，连字符转空格
+        const formattedGenre = trackGenre
+            .split('-')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+        genreElement.textContent = formattedGenre;
+    }
     
     // 显示BPM而不是迭代代数
     const bpmValue = data.features.tempo ? Math.round(data.features.tempo) : '--';
     document.getElementById('bpmValue').textContent = bpmValue;
     
-    // 创建雷达图
-    createRadarChart(data.features);
+    // 创建雷达图（检查Chart.js是否加载）
+    if (typeof Chart !== 'undefined') {
+        createRadarChart(data.features);
+        document.getElementById('radarChartContainer').classList.remove('hidden');
+        document.getElementById('fallbackVisualization').classList.add('hidden');
+    } else {
+        console.warn('⚠️ Chart.js未加载，使用CSS替代可视化方案');
+        createFallbackVisualization(data.features);
+        document.getElementById('radarChartContainer').classList.add('hidden');
+        document.getElementById('fallbackVisualization').classList.remove('hidden');
+    }
     
     // 特征详情（完整列表） - 只显示音乐特征模型使用的13个特征
     const featuresGrid = document.getElementById('featuresGrid');
@@ -619,6 +644,10 @@ function displayResult(data) {
         'time_signature': '节拍',
         'duration_ms': '歌曲时长'
     };
+    
+    // 调试：检查接收到的数据
+    console.log('📊 显示结果数据:', data);
+    console.log('🎵 音乐特征:', data.features);
     
     // 只显示音乐模型用到的特征
     musicModelFeatures.forEach(key => {
@@ -660,14 +689,25 @@ function displayResult(data) {
     
     // AI提示词数据 - 显示为JSON格式
     const promptElement = document.getElementById('aiPrompt');
+    console.log('📝 AI提示词数据:', data.ai_prompt);
+    
     if (data.ai_prompt && typeof data.ai_prompt === 'object') {
         // 保存到全局变量供AI生成使用
         currentResult.ai_prompt_data = data.ai_prompt;
         // 格式化JSON显示
-        promptElement.textContent = JSON.stringify(data.ai_prompt, null, 2);
+        try {
+            promptElement.textContent = JSON.stringify(data.ai_prompt, null, 2);
+        } catch (e) {
+            console.error('JSON格式化失败:', e);
+            promptElement.textContent = String(data.ai_prompt);
+        }
+    } else if (data.ai_prompt) {
+        // 兼容旧格式或字符串格式
+        promptElement.textContent = String(data.ai_prompt);
     } else {
-        // 兼容旧格式
-        promptElement.textContent = data.ai_prompt || '暂无数据';
+        // 完全没有数据
+        console.warn('⚠️ 没有收到ai_prompt数据');
+        promptElement.textContent = '{\n  "error": "未收到特征数据"\n}';
     }
     
     // 重置AI提示词生成状态
@@ -890,7 +930,58 @@ function updateCircularProgress(popularity) {
 }
 
 // ==================== 雷达图 ====================
+// ==================== CSS替代可视化方案 ====================
+function createFallbackVisualization(features) {
+    const container = document.getElementById('fallbackVisualization');
+    
+    // 筛选0-1范围的音频特征
+    const radarFeatures = {
+        'danceability': { name: '可舞性', icon: '💃' },
+        'energy': { name: '能量', icon: '⚡' },
+        'speechiness': { name: '语言性', icon: '🗣️' },
+        'acousticness': { name: '原声性', icon: '🎸' },
+        'instrumentalness': { name: '器乐性', icon: '🎹' },
+        'liveness': { name: '现场感', icon: '🎤' },
+        'valence': { name: '情感价', icon: '😊' }
+    };
+    
+    let html = '<div class="fallback-chart-header">📊 音乐特征可视化</div>';
+    html += '<div class="fallback-bars">';
+    
+    Object.entries(radarFeatures).forEach(([key, info]) => {
+        if (features[key] !== undefined) {
+            const value = features[key];
+            const percentage = Math.round(value * 100);
+            const colorClass = percentage >= 70 ? 'high' : percentage >= 40 ? 'medium' : 'low';
+            
+            html += `
+                <div class="fallback-bar-item">
+                    <div class="fallback-bar-label">
+                        <span class="feature-icon">${info.icon}</span>
+                        <span class="feature-name">${info.name}</span>
+                        <span class="feature-percentage">${percentage}%</span>
+                    </div>
+                    <div class="fallback-bar-track">
+                        <div class="fallback-bar-fill ${colorClass}" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
+    html += '</div>';
+    html += '<div class="fallback-chart-footer">✨ 纯CSS可视化 | 无需外部库</div>';
+    
+    container.innerHTML = html;
+}
+
 function createRadarChart(features) {
+    // 检查Chart.js是否加载
+    if (typeof Chart === 'undefined') {
+        console.error('Chart.js未加载，无法创建雷达图');
+        return;
+    }
+    
     // 销毁旧图表
     if (radarChart) {
         radarChart.destroy();

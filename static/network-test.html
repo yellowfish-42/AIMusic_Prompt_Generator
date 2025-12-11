@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网络资源检测</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .pending { background: #fff3cd; color: #856404; }
+        h1 { color: #333; }
+        .url { 
+            font-family: 'Courier New', monospace; 
+            background: #f0f0f0; 
+            padding: 2px 6px; 
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        button {
+            background: #1DB954;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #1aa34a; }
+    </style>
+</head>
+<body>
+    <h1>🔍 网络资源加载检测</h1>
+    <p>此页面用于检测应用所需的外部资源是否可以正常加载</p>
+    
+    <div class="test-card">
+        <h3>1. Chart.js 库 (雷达图必需)</h3>
+        <span class="url">https://cdn.jsdelivr.net/npm/chart.js@4.4.0</span>
+        <span id="chart-status" class="status pending">检测中...</span>
+        <p id="chart-detail"></p>
+    </div>
+    
+    <div class="test-card">
+        <h3>2. Google Fonts (Inter字体)</h3>
+        <span class="url">https://fonts.googleapis.com</span>
+        <span id="font-status" class="status pending">检测中...</span>
+        <p id="font-detail"></p>
+    </div>
+    
+    <div class="test-card">
+        <h3>3. 后端API连接</h3>
+        <span class="url" id="api-url">检测中...</span>
+        <span id="api-status" class="status pending">检测中...</span>
+        <p id="api-detail"></p>
+    </div>
+    
+    <div class="test-card">
+        <h3>4. 浏览器控制台日志</h3>
+        <p>请按F12打开开发者工具，查看Console标签页中的详细日志</p>
+    </div>
+    
+    <div class="test-card" style="background: linear-gradient(135deg, #1a1a1a, #2d2d2d); border: 2px solid #1DB954;">
+        <h3>✨ 智能降级方案</h3>
+        <p><strong>即使Chart.js无法加载，系统也能正常工作！</strong></p>
+        <ul style="margin: 10px 0; padding-left: 20px; line-height: 1.8;">
+            <li>🎨 使用纯CSS进度条替代雷达图</li>
+            <li>📊 所有音乐特征数据正常显示</li>
+            <li>💚 渐变色彩和动画效果</li>
+            <li>⚡ 无需外部库，加载更快</li>
+        </ul>
+        <p style="color: #1DB954; font-weight: bold; margin-top: 10px;">
+            👉 用户体验不受影响！
+        </p>
+    </div>
+    
+    <button onclick="location.reload()">🔄 重新检测</button>
+    <button onclick="window.location.href='/'">← 返回主页</button>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        console.log('=== 开始网络资源检测 ===');
+        
+        // 检测Chart.js
+        setTimeout(() => {
+            const chartStatus = document.getElementById('chart-status');
+            const chartDetail = document.getElementById('chart-detail');
+            
+            if (typeof Chart !== 'undefined') {
+                chartStatus.textContent = '✅ 加载成功';
+                chartStatus.className = 'status success';
+                chartDetail.textContent = `Chart.js版本: ${Chart.version}`;
+                console.log('✅ Chart.js加载成功, 版本:', Chart.version);
+            } else {
+                chartStatus.textContent = '❌ 加载失败';
+                chartStatus.className = 'status error';
+                chartDetail.textContent = '无法访问CDN，雷达图功能将不可用。可能原因：网络限制、防火墙、DNS问题';
+                console.error('❌ Chart.js加载失败');
+            }
+        }, 1000);
+        
+        // 检测Google Fonts
+        setTimeout(() => {
+            const fontStatus = document.getElementById('font-status');
+            const fontDetail = document.getElementById('font-detail');
+            
+            // 检测字体是否加载
+            const testElement = document.createElement('div');
+            testElement.style.fontFamily = 'Inter, sans-serif';
+            testElement.style.position = 'absolute';
+            testElement.style.visibility = 'hidden';
+            testElement.textContent = 'Test';
+            document.body.appendChild(testElement);
+            
+            const computedFont = window.getComputedStyle(testElement).fontFamily;
+            document.body.removeChild(testElement);
+            
+            if (computedFont.includes('Inter')) {
+                fontStatus.textContent = '✅ 加载成功';
+                fontStatus.className = 'status success';
+                fontDetail.textContent = 'Inter字体已加载，界面显示正常';
+                console.log('✅ Google Fonts加载成功');
+            } else {
+                fontStatus.textContent = '⚠️ 使用备用字体';
+                fontStatus.className = 'status pending';
+                fontDetail.textContent = '无法加载Inter字体，使用系统默认字体。不影响功能使用';
+                console.warn('⚠️ Google Fonts加载失败，使用备用字体');
+            }
+        }, 1500);
+        
+        // 检测API连接
+        const apiUrl = window.location.origin;
+        document.getElementById('api-url').textContent = apiUrl + '/api/styles';
+        
+        fetch(apiUrl + '/api/styles')
+            .then(response => {
+                const apiStatus = document.getElementById('api-status');
+                const apiDetail = document.getElementById('api-detail');
+                
+                if (response.ok) {
+                    return response.json().then(data => {
+                        apiStatus.textContent = '✅ 连接正常';
+                        apiStatus.className = 'status success';
+                        apiDetail.textContent = `成功获取${data.styles?.length || 0}个音乐风格`;
+                        console.log('✅ API连接正常:', data);
+                    });
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            })
+            .catch(error => {
+                const apiStatus = document.getElementById('api-status');
+                const apiDetail = document.getElementById('api-detail');
+                apiStatus.textContent = '❌ 连接失败';
+                apiStatus.className = 'status error';
+                apiDetail.textContent = `错误: ${error.message}. 请检查服务器是否运行`;
+                console.error('❌ API连接失败:', error);
+            });
+        
+        console.log('当前访问地址:', window.location.href);
+        console.log('API基础地址:', window.location.origin);
+    </script>
+</body>
+</html>

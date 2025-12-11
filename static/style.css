@@ -1426,7 +1426,7 @@ small {
 /* 概览卡片 - Grid布局 */
 .overview-cards {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--space-md);
 }
 
@@ -2042,6 +2042,131 @@ small {
     max-height: 350px;
     width: 100% !important;
     height: auto !important;
+}
+
+/* ==================== CSS替代可视化样式 ==================== */
+.fallback-visualization {
+    width: 100%;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(29, 185, 84, 0.2);
+}
+
+.fallback-chart-header {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--spotify-green);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(29, 185, 84, 0.2);
+}
+
+.fallback-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.fallback-bar-item {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fallback-bar-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.fallback-bar-label .feature-icon {
+    font-size: 18px;
+    margin-right: 8px;
+}
+
+.fallback-bar-label .feature-name {
+    flex: 1;
+    font-weight: 500;
+}
+
+.fallback-bar-label .feature-percentage {
+    font-weight: 700;
+    color: var(--spotify-green);
+    min-width: 45px;
+    text-align: right;
+}
+
+.fallback-bar-track {
+    width: 100%;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+}
+
+.fallback-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.8s ease-out, background 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 渐变动画效果 */
+.fallback-bar-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* 不同数值的颜色 */
+.fallback-bar-fill.high {
+    background: linear-gradient(90deg, #1DB954, #1ed760);
+    box-shadow: 0 0 10px rgba(29, 185, 84, 0.5);
+}
+
+.fallback-bar-fill.medium {
+    background: linear-gradient(90deg, #FFA500, #FFD700);
+    box-shadow: 0 0 10px rgba(255, 165, 0, 0.5);
+}
+
+.fallback-bar-fill.low {
+    background: linear-gradient(90deg, #888, #aaa);
+    box-shadow: 0 0 10px rgba(136, 136, 136, 0.3);
+}
+
+.fallback-chart-footer {
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    font-style: italic;
+}
+
+/* hover效果 */
+.fallback-bar-item:hover .fallback-bar-fill {
+    filter: brightness(1.2);
+}
+
+.fallback-bar-item:hover .fallback-bar-label {
+    color: var(--spotify-green);
 }
 
 .feature-item:hover {

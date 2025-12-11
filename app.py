@@ -39,9 +39,10 @@ clustering_scaler = None  # 聚类模型的标准化器
 prediction_artifacts = None
 feature_names = None
 
-# 双RandomForest模型（新增）
-rf_model_music = None      # 音乐特征模型（13个特征）
-rf_model_artist = None     # 艺术家特征模型（7个特征）
+# 流行度预测模型（新增）
+xgboost_model = None          # XGBoost音乐特征模型（包含聚类前的音乐属性）
+spotify_preprocessor = None   # 数据预处理器
+rf_model_artist = None        # 艺术家特征模型（7个特征）
 
 # 音乐风格映射
 CLUSTER_NAMES = {
@@ -67,6 +68,42 @@ CLUSTER_DESCRIPTIONS = {
     7: "新世纪、助眠、古典、氛围音乐。极低能量，几乎全是原声乐器且无人声，用于助眠、冥想、学习。"
 }
 
+# 聚类到音乐流派的映射（用于XGBoost的track_genre特征）
+# XGBoost模型包含114个独热编码的genre特征
+# 每个聚类对应多个可能的genre，GA算法会在这些genre中搜索最优组合
+# 这些genre名称必须与预处理器中的 'cat__track_genre_XXX' 特征对应
+CLUSTER_TO_GENRES = {
+    0: ["acoustic", "jazz", "romance", "tango", "singer-songwriter", "folk", "blues", 
+        "soul", "country", "guitar", "piano", "opera"],  
+    # 经典原声人声：爵士、民谣、柔和人声、管弦乐
+    
+    1: ["comedy", "show-tunes", "children", "kids", "disney"],  
+    # 喜剧与有声内容：脱口秀、音乐剧对白、儿童内容
+    
+    2: ["techno", "trance", "grindcore", "black-metal", "minimal-techno", "idm", 
+        "industrial", "death-metal", "psych-rock"],  
+    # 高能器乐与硬核：极简科技、黑金、无歌词、噪音系
+    
+    3: ["edm", "metalcore", "heavy-metal", "dubstep", "hardstyle", "electro", 
+        "hardcore", "hard-rock", "metal"],  
+    # 重型摇滚与EDM：响度大、金属核、重低音
+    
+    4: ["latin", "samba", "salsa", "reggae", "gospel", "brazil", "reggaeton", 
+        "pagode", "sertanejo", "forro", "mpb"],  
+    # 热情现场与拉美：桑巴、雷鬼、福音、巴西/拉美风格
+    
+    5: ["punk", "drum-and-bass", "hardstyle", "punk-rock", "grunge", "hardcore", 
+        "breakbeat", "ska"],  
+    # 极速激昂：超快BPM、硬派舞曲、朋克、鼓打贝斯
+    
+    6: ["dance", "disco", "funk", "hip-hop", "dancehall", "house", "party", 
+        "groove", "r-n-b", "soul"],  
+    # 快乐律动舞曲：迪斯科、放克、Hip-hop、派对音乐
+    
+    7: ["classical", "ambient", "new-age", "sleep", "piano", "study", "chill", "sad"]  
+    # 静谧氛围轻音乐：古典、助眠、新世纪、氛围音乐
+}
+
 # 特征定义知识库
 FEATURE_DESCRIPTIONS = {
     'danceability': '可舞性 - 描述音乐适合跳舞的程度(0-1)',
@@ -85,10 +122,10 @@ FEATURE_DESCRIPTIONS = {
 
 
 def load_models():
-    """加载聚类模型、双RandomForest预测模型和未来预测数据"""
+    """加载聚类模型、XGBoost预测模型、预处理器和未来预测数据"""
     global clustering_model, clustering_scaler, prediction_artifacts, feature_names
     global future_predictions_df, DATASET_STATS
-    global rf_model_music, rf_model_artist
+    global xgboost_model, spotify_preprocessor, rf_model_artist
     
     try:
         # 加载聚类模型(字典格式)
@@ -97,13 +134,20 @@ def load_models():
         clustering_scaler = clustering_artifacts.get('scaler')
         print("✅ 聚类模型加载成功")
         
-        # 加载双RandomForest模型（新增）
+        # 加载XGBoost模型和预处理器（新增）
         try:
-            rf_model_music = joblib.load('rf_model_music.pkl')
-            print("✅ 音乐特征RandomForest模型加载成功")
+            xgboost_model = joblib.load('xgboost_spotify_best_model.pkl')
+            print("✅ XGBoost音乐特征模型加载成功 (R²=0.4767, MAE=10.14, RMSE=14.79)")
         except FileNotFoundError:
-            print("⚠️  未找到rf_model_music.pkl，音乐特征预测功能不可用")
-            rf_model_music = None
+            print("⚠️  未找到xgboost_spotify_best_model.pkl，音乐特征预测功能不可用")
+            xgboost_model = None
+        
+        try:
+            spotify_preprocessor = joblib.load('spotify_preprocessor.pkl')
+            print("✅ Spotify数据预处理器加载成功")
+        except FileNotFoundError:
+            print("⚠️  未找到spotify_preprocessor.pkl，预处理功能不可用")
+            spotify_preprocessor = None
         
         try:
             rf_model_artist = joblib.load('rf_model_artist.pkl')
@@ -234,6 +278,11 @@ class MusicGeneticAlgorithm:
         for feature, default_value in self.auxiliary_features.items():
             individual[feature] = self.locked_features.get(feature, default_value)
         
+        # 3. 添加track_genre特征（从当前聚类的genre列表中随机选择）
+        # 这使得GA算法可以探索该聚类中不同genre对流行度的影响
+        available_genres = CLUSTER_TO_GENRES.get(self.target_cluster, ['pop'])
+        individual['track_genre'] = np.random.choice(available_genres)
+        
         return individual
     
     def create_population(self) -> List[Dict]:
@@ -289,11 +338,51 @@ class MusicGeneticAlgorithm:
             return fitness
         
         # 只有属于目标风格的个体才计算流行度
-        features = self.prepare_features(individual)
-        popularity = prediction_artifacts['model'].predict([features])[0]
+        # 使用新的XGBoost模型预测
+        if xgboost_model is not None and spotify_preprocessor is not None:
+            features_df = self.prepare_features_for_xgboost(individual)
+            features_processed = spotify_preprocessor.transform(features_df)
+            popularity = xgboost_model.predict(features_processed)[0]
+        else:
+            # 降级方案：使用旧模型
+            features = self.prepare_features(individual)
+            popularity = prediction_artifacts['model'].predict([features])[0]
         
         self._fitness_cache[ind_key] = popularity
         return popularity
+    
+    def prepare_features_for_xgboost(self, individual: Dict) -> pd.DataFrame:
+        """为XGBoost模型准备特征（聚类前的音乐属性）"""
+        # 构建一行数据，包含所有音乐特征
+        duration_min = individual.get('duration_min', 3.5)
+        
+        # 从individual中获取track_genre（GA算法会优化这个参数）
+        # 如果未提供，则从该聚类的genre列表中随机选择一个
+        track_genre = individual.get('track_genre', None)
+        if track_genre is None:
+            available_genres = CLUSTER_TO_GENRES.get(self.target_cluster, ['pop'])
+            track_genre = np.random.choice(available_genres)
+        
+        features_dict = {
+            'danceability': individual['danceability'],
+            'energy': individual['energy'],
+            'key': individual['key'],
+            'loudness': individual['loudness'],
+            'mode': individual['mode'],
+            'speechiness': individual['speechiness'],
+            'acousticness': individual['acousticness'],
+            'instrumentalness': individual['instrumentalness'],
+            'liveness': individual['liveness'],
+            'valence': individual['valence'],
+            'tempo': individual['tempo'],
+            'duration_ms': duration_min * 60000,  # 转换为毫秒
+            'time_signature': individual['time_signature'],
+            'explicit': 0,  # 默认非显式内容
+            'track_genre': track_genre  # 根据聚类推断的流派
+        }
+        
+        # 转换为DataFrame
+        return pd.DataFrame([features_dict])
     
     def prepare_features(self, individual: Dict) -> List:
         """准备模型输入特征向量"""
@@ -446,6 +535,14 @@ class MusicGeneticAlgorithm:
             child1[feature] = parent1.get(feature, self.auxiliary_features[feature])
             child2[feature] = parent2.get(feature, self.auxiliary_features[feature])
         
+        # 交叉track_genre（随机选择父母之一的genre）
+        if random.random() < 0.5:
+            child1['track_genre'] = parent1.get('track_genre', 'pop')
+            child2['track_genre'] = parent2.get('track_genre', 'pop')
+        else:
+            child1['track_genre'] = parent2.get('track_genre', 'pop')
+            child2['track_genre'] = parent1.get('track_genre', 'pop')
+        
         return child1, child2
     
     def mutate(self, individual: Dict) -> Dict:
@@ -474,6 +571,11 @@ class MusicGeneticAlgorithm:
                     mutated[feature] + random.gauss(0, sigma),
                     low, high
                 )
+        
+        # 有20%的概率变异track_genre（从当前聚类的genre列表中重新选择）
+        if random.random() < 0.2:
+            available_genres = CLUSTER_TO_GENRES.get(self.target_cluster, ['pop'])
+            mutated['track_genre'] = np.random.choice(available_genres)
         
         return mutated
     
@@ -518,17 +620,21 @@ class MusicGeneticAlgorithm:
         predicted_popularity = self.calculate_fitness(best_individual) + \
                              (30 if self.predict_cluster(best_individual) != self.target_cluster else 0)
         
+        # 获取track_genre（从best_individual中提取）
+        track_genre = best_individual.get('track_genre', 'unknown')
+        
         return {
             'features': best_individual,
             'predicted_popularity': float(predicted_popularity),
             'cluster': int(self.predict_cluster(best_individual)),
             'cluster_name': CLUSTER_NAMES[self.predict_cluster(best_individual)],
+            'track_genre': track_genre,  # 添加到顶层，方便前端访问
             'generations': generation,
             'elapsed_time': round(elapsed_time, 2)
         }
 
 
-def generate_ai_prompt(features: Dict, cluster_name: str) -> Dict:
+def generate_ai_prompt(features: Dict, cluster_name: str, cluster_id: int = None) -> Dict:
     """
     根据音乐特征生成结构化数据供AI API使用
     只包含13个音乐特征模型使用的纯音乐属性
@@ -536,6 +642,7 @@ def generate_ai_prompt(features: Dict, cluster_name: str) -> Dict:
     Args:
         features: 音乐特征字典
         cluster_name: 音乐风格名称
+        cluster_id: 聚类ID（可选，用于推断track_genre）
     
     Returns:
         包含音乐特征数值的字典
@@ -549,9 +656,13 @@ def generate_ai_prompt(features: Dict, cluster_name: str) -> Dict:
     duration_min = features.get('duration_min', 3.5)
     duration_ms = int(duration_min * 60000)
     
+    # 使用GA优化后的track_genre（如果存在）
+    track_genre = features.get('track_genre', 'unknown')
+    
     prompt_data = {
         # 基本信息
         'style': cluster_name,
+        'genre': track_genre,  # 音乐流派（GA优化后的单个genre）
         
         # 音频特征（0-1范围）
         'danceability': round(features['danceability'], 3),  # 可舞性
@@ -639,13 +750,19 @@ def call_deepseek_api(api_key: str, music_features: Dict) -> Dict:
 
 ## 你的任务目标
 请根据上述定义，根据下面的特征数值，生成用于生成AI音乐的提示词。提示词应当：
-1. 用自然、生动、富有感染力的语言描述音乐的风格、情绪、节奏和氛围
-2. 结合特征值的具体含义进行准确描述
-3. 让AI音乐生成系统能够理解并创作出符合这些特征的音乐
-4. 控制在50-250字之间
-5. 提示词为英文，要有对应的中文翻译版本
-
-注意：用户只能看到你生成的音乐描述文本，看不到特征定义等背景信息。直接输出音乐描述即可，不要有任何前缀或解释。"""
+1. 结构优先： 采用“核心风格 + 乐器/音色 + 情绪形容词 + 节奏/速度”的关键词组合格式（Suno/Udio 对这种格式理解力最强）。
+2. 特征映射：
+若 Energy 高：使用 "High-octane", "Anthemic", "Powerful" 等词。
+若 Acousticness 高：使用 "Unplugged", "Organic", "Raw" 等词。
+若 Valence 低：使用 "Melancholic", "Haunting", "Somber" 等词。
+结合 BPM 给出具体的流派（如 Synthwave, Lo-fi, Hard Rock）。
+3. 英文提示词必须控制在 10-40 个单词（或 200 字符）以内，确保不被截断。
+4. 英文部分需专业、精准；中文部分需信达雅，便于用户理解意境。
+5. 输出格式：
+直接输出结果，不要包含任何解释。格式如下：
+[英文关键词串]
+[中文翻译]
+"""
 
     # 构建用户消息
     user_message = f"""请根据以下音乐特征生成一段自然流畅的音乐描述：
@@ -733,9 +850,17 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/network-test')
+def network_test():
+    """网络资源检测页面"""
+    from flask import send_from_directory
+    return send_from_directory('static', 'network-test.html')
+
+
 @app.route('/api/styles', methods=['GET'])
 def get_styles():
-    """获取所有音乐风格"""
+    """获取所有音乐风格（排除非音乐类别）"""
+    # 排除cluster 1（喜剧与有声内容），因为不属于音乐
     styles = [
         {
             'id': k, 
@@ -743,6 +868,7 @@ def get_styles():
             'description': CLUSTER_DESCRIPTIONS.get(k, '')
         } 
         for k, v in CLUSTER_NAMES.items()
+        if k != 1  # 排除喜剧与有声内容
     ]
     return jsonify(styles)
 
@@ -770,30 +896,39 @@ def predict_music_popularity():
     }
     """
     try:
-        if rf_model_music is None:
+        if xgboost_model is None or spotify_preprocessor is None:
             return jsonify({
                 'success': False,
-                'error': '音乐特征预测模型未加载'
+                'error': 'XGBoost模型或预处理器未加载'
             }), 503
         
         data = request.json
         
-        # 13个音频特征（按训练时的顺序）
-        features_order = [
-            'danceability', 'energy', 'key', 'loudness', 'mode', 'speechiness',
-            'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo',
-            'duration_ms', 'time_signature'
-        ]
+        # 构建特征DataFrame（聚类前的音乐属性）
+        features_dict = {
+            'danceability': data.get('danceability', 0),
+            'energy': data.get('energy', 0),
+            'key': data.get('key', 0),
+            'loudness': data.get('loudness', 0),
+            'mode': data.get('mode', 0),
+            'speechiness': data.get('speechiness', 0),
+            'acousticness': data.get('acousticness', 0),
+            'instrumentalness': data.get('instrumentalness', 0),
+            'liveness': data.get('liveness', 0),
+            'valence': data.get('valence', 0),
+            'tempo': data.get('tempo', 0),
+            'duration_ms': data.get('duration_ms', 210000),
+            'time_signature': data.get('time_signature', 4),
+            'explicit': data.get('explicit', 0),  # 默认非显式内容
+            'track_genre': data.get('track_genre', 'unknown')  # 默认流派
+        }
         
-        # 构建特征向量
-        X = []
-        for feat in features_order:
-            value = data.get(feat, 0)
-            X.append(value)
+        # 转换为DataFrame并预处理
+        X_df = pd.DataFrame([features_dict])
+        X_processed = spotify_preprocessor.transform(X_df)
         
         # 预测
-        X_array = np.array([X])
-        predicted_popularity = rf_model_music.predict(X_array)[0]
+        predicted_popularity = xgboost_model.predict(X_processed)[0]
         
         # 限制在0-100范围
         predicted_popularity = max(0, min(100, predicted_popularity))
@@ -801,8 +936,13 @@ def predict_music_popularity():
         return jsonify({
             'success': True,
             'predicted_popularity': round(float(predicted_popularity), 2),
-            'model': 'RandomForest_Music',
-            'features_used': features_order
+            'model': 'XGBoost',
+            'model_performance': {
+                'r2': 0.4767,
+                'mae': 10.1357,
+                'rmse': 14.7936
+            },
+            'features_used': list(features_dict.keys())
         })
         
     except Exception as e:
@@ -894,9 +1034,9 @@ def predict_dual_models():
     try:
         data = request.json
         
-        # 调用音乐特征预测
+        # 调用音乐特征预测（XGBoost）
         music_result = None
-        if rf_model_music is not None:
+        if xgboost_model is not None and spotify_preprocessor is not None:
             music_features = {
                 'danceability': data.get('danceability', 0),
                 'energy': data.get('energy', 0),
@@ -909,16 +1049,19 @@ def predict_dual_models():
                 'liveness': data.get('liveness', 0),
                 'valence': data.get('valence', 0),
                 'tempo': data.get('tempo', 0),
-                'duration_ms': data.get('duration_ms', 0),
-                'time_signature': data.get('time_signature', 4)
+                'duration_ms': data.get('duration_ms', 210000),
+                'time_signature': data.get('time_signature', 4),
+                'explicit': data.get('explicit', 0),
+                'track_genre': data.get('track_genre', 'unknown')
             }
             
-            features_order = list(music_features.keys())
-            X_music = np.array([[music_features[f] for f in features_order]])
-            music_pred = rf_model_music.predict(X_music)[0]
+            X_music_df = pd.DataFrame([music_features])
+            X_music_processed = spotify_preprocessor.transform(X_music_df)
+            music_pred = xgboost_model.predict(X_music_processed)[0]
             music_result = {
                 'predicted_popularity': round(float(max(0, min(100, music_pred))), 2),
-                'model': 'RandomForest_Music'
+                'model': 'XGBoost',
+                'r2': 0.4767
             }
         
         # 调用艺术家特征预测
@@ -1047,8 +1190,8 @@ def generate_music():
                 else:
                     print(f"  ✅ {feature}: {value}")
         
-        # 生成AI提示词
-        ai_prompt = generate_ai_prompt(result['features'], result['cluster_name'])
+        # 生成AI提示词（传入cluster ID用于推断genre）
+        ai_prompt = generate_ai_prompt(result['features'], result['cluster_name'], result['cluster'])
         result['ai_prompt'] = ai_prompt
         result['locked_features'] = validated_locked  # 返回锁定的特征信息
         
