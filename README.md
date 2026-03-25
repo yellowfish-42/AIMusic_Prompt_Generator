@@ -2,20 +2,50 @@
 
 基于遗传算法和机器学习的智能音乐特征优化平台 + 艺术家流行度分析工具
 
-## 🆕 v3.0 更新
+### 🚀 核心功能模块
 
-### 双模型系统升级
-现在采用**XGBoost + RandomForest混合架构**：
+#### 1. AI 音乐提示词生成器 (XGBoost + GA)
+系统通过遗传算法（GA）在 7 大核心音乐风格空间内进行启发式搜索，寻找最具流行潜力的特征组合。
+*   **特征微调与锁定**：支持对可舞性、能量、响度等 13 项关键音频特征进行精细化锁定。
+*   **流行度优化**：利用 **XGBoost** 模型作为适应度引擎，实时预估流行度分值。
+*   **可视化反馈**：通过多维雷达图直观展示生成音乐的特征分布、流派标签及最优 BPM。
 
-1. **🎵 AI音乐生成器** - 基于13个音频特征 + 72种音乐流派，使用 **XGBoost (R²=0.4767)** 预测流行度
-2. **📊 艺术家流行度分析器** - 基于7个艺术家/专辑特征，使用 **RandomForest (R²=0.4140)** 预测流行度
+<img width="604" height="294" alt="image" src="https://github.com/user-attachments/assets/93fbc02b-7837-49f7-9c86-a5ba25033363" />
 
-### 流派优化系统
-- ✨ **72种音乐流派** - 从原先的8种固定映射升级到72种流派，充分利用XGBoost的114个流派特征（63.7%利用率）
-- ✨ **流派进化优化** - 遗传算法现在同时优化音频特征和音乐流派，找到最优组合
-- ✨ **智能流派展示** - 结果页面实时显示遗传算法优化后的最佳流派
+*图1：AI 音乐提示词生成器欢迎界面*
 
----
+| <img width="206" height="319" alt="image" src="https://github.com/user-attachments/assets/71a62c29-5867-4dc7-8a81-15624904b0b7" />
+ | <img width="188" height="389" alt="image" src="https://github.com/user-attachments/assets/ba53adda-5520-4197-9992-b5ef68ac3b40" />
+ |
+| :---: | :---: |
+| *图2：音乐风格选择* | *图3：音乐特征微调与锁定* |
+
+#### 2. DeepSeek 创作闭环
+系统集成了 **DeepSeek 大语言模型**，将优化后的高维特征向量转化为 **Suno / Udio** 等主流 AI 音乐平台的自然语言提示词（Prompt）。
+*   **多语言输出**：自动生成精确的英文描述词及中文对照。
+*   **无缝对接**：支持特征数据以 JSON 格式导出，适配专业音频生产流。
+
+<img width="576" height="329" alt="image" src="https://github.com/user-attachments/assets/0affd1db-f192-45ae-8284-3a8b01e29fc2" />
+
+*图4：GA 搜索结果与特征分布*
+
+<img width="557" height="338" alt="image" src="https://github.com/user-attachments/assets/6021136c-0371-40a5-9da2-20b7c279d74e" />
+
+*图5：DeepSeek 生成的专业提示词*
+
+#### 3. 艺术家与市场流行度预测 (Random Forest)
+基于**随机森林算法**，从市场维度量化外部因素（非声学特征）对作品表现的影响。
+*   **多维参数输入**：涵盖发行年份、粉丝基数、Spotify 评分及专辑结构等 7 项关键指标。
+*   **决策透明化**：输出具体的流行度预测分值，并结构化展示特征影响权重。
+
+<img width="205" height="476" alt="image" src="https://github.com/user-attachments/assets/493aab0b-7f6a-4da4-b18f-93c34617305b" />
+
+*图6：艺术家和专辑信息输入接口*
+
+<img width="642" height="402" alt="image" src="https://github.com/user-attachments/assets/728dfe8d-deab-4e8c-b470-b57cea2b626e" />
+
+*图7：基于随机森林的流行度预测结果*
+
 
 ## 📋 功能特性
 
@@ -432,10 +462,6 @@ GET /api/feature-info
 - 确保模型文件完整且版本兼容
 - 首次运行可能需要较长的模型加载时间
 - 遗传算法结果具有随机性,每次运行可能略有不同
-
-## 📝 许可证
-
-本项目仅供学习和研究使用
 
 ## 数据集
 
