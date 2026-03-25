@@ -8,7 +8,7 @@
 系统通过遗传算法（GA）在 7 大核心音乐风格空间内进行启发式搜索，寻找最具流行潜力的特征组合。
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/93fbc02b-7837-49f7-9c86-a5ba25033363" width="85%">
+  <img src="https://github.com/user-attachments/assets/99a67fc7-fc6c-4411-bdb8-58018d03d452" width="90%">
   <p><b>图1：AI 音乐提示词生成器欢迎界面</b></p>
 </div>
 
@@ -19,8 +19,8 @@
 <div align="center">
   <table>
     <tr>
-      <td align="center"><img src="https://github.com/user-attachments/assets/71a62c29-5867-4dc7-8a81-15624904b0b7" width="220px"><br><b>图2：音乐风格选择</b></td>
-      <td align="center"><img src="https://github.com/user-attachments/assets/ba53adda-5520-4197-9992-b5ef68ac3b40" width="220px"><br><b>图3：音乐特征微调与锁定</b></td>
+      <td align="center" valign="bottom"><img src="https://github.com/user-attachments/assets/4293572f-7368-47f2-b3f0-1023a1a875e5" width="240px"><br><b>图2：音乐风格选择</b></td>
+      <td align="center" valign="bottom"><img src="https://github.com/user-attachments/assets/dfea5500-1553-4b6b-a792-28b5a5028ab4" width="225px"><br><b>图3：音乐特征微调与锁定</b></td>
     </tr>
   </table>
 </div>
@@ -31,10 +31,10 @@
 系统集成了 **DeepSeek 大语言模型**，将优化后的高维特征向量转化为 **Suno / Udio** 等主流 AI 音乐平台的自然语言提示词（Prompt）。
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/0affd1db-f192-45ae-8284-3a8b01e29fc2" width="80%">
+  <img src="https://github.com/user-attachments/assets/93646e48-6272-4e55-a0f6-8c19bef9153b" width="85%">
   <p><b>图4：GA 搜索结果与特征分布可视化</b></p>
-  <img src="https://github.com/user-attachments/assets/6021136c-0371-40a5-9da2-20b7c279d74e" width="80%">
-  <p><b>图5：DeepSeek 生成的专业提示词（中英双语）</b></p>
+  <img src="https://github.com/user-attachments/assets/8e5c7b57-bedd-46bb-a1bc-3faf05c3c6b9" width="85%">
+  <p><b>图5：DeepSeek 生成的专业提示词（中英双语对照）</b></p>
 </div>
 
 *   **多语言输出**：自动生成精确的英文描述词及中文对照。
@@ -48,14 +48,16 @@
 <div align="center">
   <table>
     <tr>
-      <td align="center" width="30%"><img src="https://github.com/user-attachments/assets/493aab0b-7f6a-4da4-b18f-93c34617305b" width="100%"><br><b>图6：市场参数输入</b></td>
-      <td align="center" width="70%"><img src="https://github.com/user-attachments/assets/728dfe8d-deab-4e8c-b470-b57cea2b626e" width="100%"><br><b>图7：预测结果看板</b></td>
+      <td align="center" width="35%"><img src="https://github.com/user-attachments/assets/cfa65273-55de-4dcf-80a0-1421131b7d94" width="100%"><br><b>图6：市场参数输入接口</b></td>
+      <td align="center" width="65%"><img src="https://github.com/user-attachments/assets/87cc271e-091d-4351-80c2-f84bae5cd903" width="100%"><br><b>图7：基于随机森林的预测结果看板</b></td>
     </tr>
   </table>
 </div>
 
-*   **多维参数输入**：涵盖发行年份、粉丝基数、Spotify 评分及专辑结构等指标。
+*   **多维参数输入**：涵盖发行年份、粉丝基数、Spotify 评分及专辑结构等 7 项关键指标。
 *   **决策透明化**：输出具体的流行度预测分值，并结构化展示特征影响权重。
+
+---
 
 
 ## 📋 功能特性
