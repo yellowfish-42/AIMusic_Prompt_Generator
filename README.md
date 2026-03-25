@@ -6,45 +6,56 @@
 
 #### 1. AI 音乐提示词生成器 (XGBoost + GA)
 系统通过遗传算法（GA）在 7 大核心音乐风格空间内进行启发式搜索，寻找最具流行潜力的特征组合。
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/93fbc02b-7837-49f7-9c86-a5ba25033363" width="85%">
+  <p><b>图1：AI 音乐提示词生成器欢迎界面</b></p>
+</div>
+
 *   **特征微调与锁定**：支持对可舞性、能量、响度等 13 项关键音频特征进行精细化锁定。
 *   **流行度优化**：利用 **XGBoost** 模型作为适应度引擎，实时预估流行度分值。
 *   **可视化反馈**：通过多维雷达图直观展示生成音乐的特征分布、流派标签及最优 BPM。
 
-<img width="604" height="294" alt="image" src="https://github.com/user-attachments/assets/93fbc02b-7837-49f7-9c86-a5ba25033363" />
+<div align="center">
+  <table>
+    <tr>
+      <td align="center"><img src="https://github.com/user-attachments/assets/71a62c29-5867-4dc7-8a81-15624904b0b7" width="220px"><br><b>图2：音乐风格选择</b></td>
+      <td align="center"><img src="https://github.com/user-attachments/assets/ba53adda-5520-4197-9992-b5ef68ac3b40" width="220px"><br><b>图3：音乐特征微调与锁定</b></td>
+    </tr>
+  </table>
+</div>
 
-*图1：AI 音乐提示词生成器欢迎界面*
-
-| <img width="206" height="319" alt="image" src="https://github.com/user-attachments/assets/71a62c29-5867-4dc7-8a81-15624904b0b7" />
- | <img width="188" height="389" alt="image" src="https://github.com/user-attachments/assets/ba53adda-5520-4197-9992-b5ef68ac3b40" />
- |
-| :---: | :---: |
-| *图2：音乐风格选择* | *图3：音乐特征微调与锁定* |
+---
 
 #### 2. DeepSeek 创作闭环
 系统集成了 **DeepSeek 大语言模型**，将优化后的高维特征向量转化为 **Suno / Udio** 等主流 AI 音乐平台的自然语言提示词（Prompt）。
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/0affd1db-f192-45ae-8284-3a8b01e29fc2" width="80%">
+  <p><b>图4：GA 搜索结果与特征分布可视化</b></p>
+  <img src="https://github.com/user-attachments/assets/6021136c-0371-40a5-9da2-20b7c279d74e" width="80%">
+  <p><b>图5：DeepSeek 生成的专业提示词（中英双语）</b></p>
+</div>
+
 *   **多语言输出**：自动生成精确的英文描述词及中文对照。
 *   **无缝对接**：支持特征数据以 JSON 格式导出，适配专业音频生产流。
 
-<img width="576" height="329" alt="image" src="https://github.com/user-attachments/assets/0affd1db-f192-45ae-8284-3a8b01e29fc2" />
-
-*图4：GA 搜索结果与特征分布*
-
-<img width="557" height="338" alt="image" src="https://github.com/user-attachments/assets/6021136c-0371-40a5-9da2-20b7c279d74e" />
-
-*图5：DeepSeek 生成的专业提示词*
+---
 
 #### 3. 艺术家与市场流行度预测 (Random Forest)
 基于**随机森林算法**，从市场维度量化外部因素（非声学特征）对作品表现的影响。
-*   **多维参数输入**：涵盖发行年份、粉丝基数、Spotify 评分及专辑结构等 7 项关键指标。
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" width="30%"><img src="https://github.com/user-attachments/assets/493aab0b-7f6a-4da4-b18f-93c34617305b" width="100%"><br><b>图6：市场参数输入</b></td>
+      <td align="center" width="70%"><img src="https://github.com/user-attachments/assets/728dfe8d-deab-4e8c-b470-b57cea2b626e" width="100%"><br><b>图7：预测结果看板</b></td>
+    </tr>
+  </table>
+</div>
+
+*   **多维参数输入**：涵盖发行年份、粉丝基数、Spotify 评分及专辑结构等指标。
 *   **决策透明化**：输出具体的流行度预测分值，并结构化展示特征影响权重。
-
-<img width="205" height="476" alt="image" src="https://github.com/user-attachments/assets/493aab0b-7f6a-4da4-b18f-93c34617305b" />
-
-*图6：艺术家和专辑信息输入接口*
-
-<img width="642" height="402" alt="image" src="https://github.com/user-attachments/assets/728dfe8d-deab-4e8c-b470-b57cea2b626e" />
-
-*图7：基于随机森林的流行度预测结果*
 
 
 ## 📋 功能特性
